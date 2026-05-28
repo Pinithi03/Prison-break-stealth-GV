@@ -2,15 +2,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-public class GuardController : MonoBehaviour
+public class GuardController2 : MonoBehaviour
 {
     public NavMeshAgent agent;
     public Animator anim;
-    
-    // Testing path variables
+
     public List<Vector3> currentPath = new List<Vector3>();
     private int currentPathIndex = 0;
-    
+
     public enum GuardState { Patrol, Chase, Search }
     public GuardState currentState = GuardState.Patrol;
 
@@ -20,13 +19,13 @@ public class GuardController : MonoBehaviour
     {
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (anim == null) anim = GetComponentInChildren<Animator>();
-        
-        // Guard 1 patrol: main corridor near Keycard 1 zone
-        currentPath.Add(new Vector3(-13, 0, -8));
-        currentPath.Add(new Vector3(-9, 0, -8));
-        currentPath.Add(new Vector3(-9, 0, -4));
-        currentPath.Add(new Vector3(-13, 0, -4));
-        
+
+        // Guard 2 patrol: security room zone near Keycard 3
+        currentPath.Add(new Vector3(-6, 0, 3));
+        currentPath.Add(new Vector3(-8, 0, 8));
+        currentPath.Add(new Vector3(-6, 0, 8));
+        currentPath.Add(new Vector3(-4, 0, 3));
+
         if (currentPath.Count > 0)
         {
             agent.SetDestination(currentPath[0]);
@@ -41,10 +40,8 @@ public class GuardController : MonoBehaviour
                 UpdatePatrol();
                 break;
             case GuardState.Chase:
-                // Chase logic later
                 break;
             case GuardState.Search:
-                // Search logic later
                 break;
         }
 
@@ -54,9 +51,8 @@ public class GuardController : MonoBehaviour
     void UpdatePatrol()
     {
         if (currentPath == null || currentPath.Count == 0) return;
-        if (!agent.isOnNavMesh) return; // Prevent error if NavMesh is missing
+        if (!agent.isOnNavMesh) return;
 
-        // Check if we reached the current waypoint
         if (!agent.pathPending && agent.remainingDistance < 0.5f)
         {
             currentPathIndex = (currentPathIndex + 1) % currentPath.Count;
@@ -69,7 +65,7 @@ public class GuardController : MonoBehaviour
     void SmoothRotation()
     {
         if (!agent.isOnNavMesh) return;
-        
+
         if (agent.velocity.sqrMagnitude > Mathf.Epsilon)
         {
             Quaternion lookRotation = Quaternion.LookRotation(agent.velocity.normalized);
@@ -79,28 +75,20 @@ public class GuardController : MonoBehaviour
 
     void UpdateAnimation()
     {
-        // Try to fetch animator if it is null (robust fallback)
         if (anim == null)
         {
             anim = GetComponentInChildren<Animator>();
         }
 
-        if (anim != null && anim.runtimeAnimatorController != null) // Prevent Animator warning
+        if (anim != null && anim.runtimeAnimatorController != null)
         {
             float speed = agent.velocity.magnitude;
             anim.SetFloat("Speed", speed);
 
-            // Robust animation speed toggle:
-            // When moving (velocity magnitude > 0.1), play the walk animation at standard speed (1f).
-            // When stationary, freeze the animation (0f) to prevent foot-sliding/sliding pose.
             if (speed > 0.1f)
-            {
                 anim.speed = 1f;
-            }
             else
-            {
                 anim.speed = 0f;
-            }
         }
     }
 }
