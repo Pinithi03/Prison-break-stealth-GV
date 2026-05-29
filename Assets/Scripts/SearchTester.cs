@@ -13,28 +13,37 @@ public class SearchTester : MonoBehaviour
 
     void Start()
     {
-        if (graph == null || bfs == null || ucs == null || aStar == null)
+        if (graph == null)
         {
-            Debug.LogError("SearchTester is missing references! Assign GraphReal, BFS, UCS and AStar in Inspector.");
+            Debug.LogError("SearchTester: GraphReal reference is missing!");
             return;
         }
 
-        bfs.graph = graph;
-        ucs.graph = graph;
-        aStar.graph = graph;
+        if (bfs != null) bfs.graph = graph;
+        if (ucs != null) ucs.graph = graph;
+        if (aStar != null) aStar.graph = graph;
 
-        Debug.Log("=== Starting Search Algorithm Tests on Real Prison Graph ===");
+        Debug.Log("=== Search Algorithm Comparison on Real Prison Graph ===");
 
-        List<int> bfsPath = bfs.FindPath(startNodeId, goalNodeId);
-        PrintPath("BFS", bfsPath);
+        if (bfs != null)
+        {
+            List<int> bfsPath = bfs.FindPath(startNodeId, goalNodeId);
+            PrintPath("BFS", bfsPath);
+        }
 
-        List<int> ucsPath = ucs.FindPath(startNodeId, goalNodeId);
-        PrintPath("UCS", ucsPath);
+        if (ucs != null)
+        {
+            List<int> ucsPath = ucs.FindPath(startNodeId, goalNodeId);
+            PrintPath("UCS", ucsPath);
+        }
 
-        List<int> aStarPath = aStar.FindPath(startNodeId, goalNodeId);
-        PrintPath("A*", aStarPath);
+        if (aStar != null)
+        {
+            List<int> aStarPath = aStar.FindPath(startNodeId, goalNodeId);
+            PrintPath("A*", aStarPath);
+        }
 
-        Debug.Log("======================================================");
+        Debug.Log("========================================================");
     }
 
     private void PrintPath(string algorithmName, List<int> path)
@@ -44,7 +53,6 @@ public class SearchTester : MonoBehaviour
             Debug.LogWarning($"{algorithmName}: No path found between Node {startNodeId} and Node {goalNodeId}.");
             return;
         }
-
         string pathString = string.Join(" -> ", path);
         Debug.Log($"[{algorithmName}] Path ({path.Count} nodes): {pathString}");
     }

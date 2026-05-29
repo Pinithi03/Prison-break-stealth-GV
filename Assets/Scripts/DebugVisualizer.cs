@@ -3,15 +3,14 @@ using UnityEngine;
 public class DebugVisualizer : MonoBehaviour
 {
     public bool showDebug = true;
-    public GraphDummy graph;
-    
+    public GraphReal graph;
+
     public Color nodeColor = Color.blue;
     public Color edgeColor = Color.yellow;
     public float nodeRadius = 0.3f;
 
     void Update()
     {
-        // Toggle debug view when pressing 'T'
         if (Input.GetKeyDown(KeyCode.T))
         {
             showDebug = !showDebug;
@@ -23,22 +22,22 @@ public class DebugVisualizer : MonoBehaviour
     {
         if (!showDebug || graph == null) return;
 
-        // Draw Nodes
         Gizmos.color = nodeColor;
         foreach (var node in graph.nodePositions)
         {
             Gizmos.DrawSphere(node.Value, nodeRadius);
         }
 
-        // Draw Edges
         Gizmos.color = edgeColor;
         foreach (var edge in graph.adjacencyList)
         {
             int fromNode = edge.Key;
+            if (!graph.nodePositions.ContainsKey(fromNode)) continue;
             Vector3 fromPos = graph.nodePositions[fromNode];
 
             foreach (int toNode in edge.Value)
             {
+                if (!graph.nodePositions.ContainsKey(toNode)) continue;
                 Vector3 toPos = graph.nodePositions[toNode];
                 Gizmos.DrawLine(fromPos, toPos);
             }
