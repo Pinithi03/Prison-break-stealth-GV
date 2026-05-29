@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class GraphReal : MonoBehaviour
 {
@@ -8,70 +9,135 @@ public class GraphReal : MonoBehaviour
     public Dictionary<int, Dictionary<int, float>> weightedAdjacencyList =
         new Dictionary<int, Dictionary<int, float>>();
 
+    private GraphNode[] graphNodes;
+
     void Awake()
     {
-        BuildGraph();
+        BuildGraphFromSceneNodes();
         PrintGraph();
     }
 
-    void BuildGraph()
+    public void BuildGraphFromSceneNodes()
     {
         nodePositions.Clear();
         adjacencyList.Clear();
         weightedAdjacencyList.Clear();
 
-        // REAL prison nodes
-        // Later you can edit these positions to match your Unity scene exactly
+        graphNodes = FindObjectsOfType<GraphNode>();
 
-        AddNode(0, new Vector3(-5.98f, 0.65f, 5.13f));    // Cell
-        AddNode(1, new Vector3(-4f,0.65f, 5.13f));    // Cell Door
-        AddNode(2, new Vector3(1.91f, 0.65f, 5.13f));    //  Main Corridor
-        AddNode(3, new Vector3(2.99f,0.65f,-6.69f));   // Security Door
-        AddNode(4, new Vector3(12, 0, 5));   // Security Room
-        AddNode(5, new Vector3(16, 0, 2));   // Exit Gate
-
-        // Edges
-        AddEdge(0, 1);
-
-        AddEdge(1, 0);
-        AddEdge(1, 2);
-
-        AddEdge(2, 1);
-        AddEdge(2, 3);
-        AddEdge(2, 5);
-
-        AddEdge(3, 2);
-        AddEdge(3, 4);
-
-        AddEdge(4, 3);
-
-        AddEdge(5, 2);
-
-        Debug.Log("Real Prison Graph Loaded");
-    }
-
-    void AddNode(int id, Vector3 position)
-    {
-        nodePositions.Add(id, position);
-        adjacencyList.Add(id, new List<int>());
-        weightedAdjacencyList.Add(id, new Dictionary<int, float>());
-    }
-
-    void AddEdge(int fromNode, int toNode)
-    {
-        if (!nodePositions.ContainsKey(fromNode) || !nodePositions.ContainsKey(toNode))
+        foreach (GraphNode node in graphNodes)
         {
-            Debug.LogError("Cannot create edge. Node ID missing.");
+            if (nodePositions.ContainsKey(node.nodeId))
+            {
+                Debug.LogError("Duplicate node ID found: " + node.nodeId + " on " + node.name);
+                continue;
+            }
+
+            Vector3 finalPosition = GetBestNodePosition(node.transform.position);
+
+            nodePositions.Add(node.nodeId, finalPosition);
+            adjacencyList.Add(node.nodeId, new List<int>());
+            weightedAdjacencyList.Add(node.nodeId, new Dictionary<int, float>());
+        }
+
+        foreach (GraphNode node in graphNodes)
+        {
+            foreach (GraphNode connectedNode in node.connectedNodes)
+            {
+                if (connectedNode == null)
+                {
+                    Debug.LogWarning("Missing connected node in: " + node.nodeName);
+                    continue;
+                }
+
+                AddEdge(node, connectedNode);
+            }
+        }
+
+        Debug.Log("Real prison graph extracted from scene nodes with NavMesh support");
+    }
+
+    private Vector3 GetBestNodePosition(Vector3 originalPosition)
+    {
+        NavMeshHit hit;
+
+        // Try near exact node position first
+        if (NavMesh.SamplePosition(originalPosition, out hit, 1f, NavMesh.AllAreas))
+        {
+            return hit.position;
+        }
+
+        // Try from above using same X and Z
+        Vector3 positionAbove = new Vector3(originalPosition.x, originalPosition.y + 10f, originalPosition.z);
+
+        if (NavMesh.SamplePosition(positionAbove, out hit, 20f, NavMesh.AllAreas))
+        {
+            return hit.position;
+        }
+
+        // Fallback: keep scene node position so graph still works
+        Debug.LogWarning("NavMesh not found near node position. Using scene position: " + originalPosition);
+        return originalPosition;
+    }
+
+    private void AddEdge(GraphNode fromNode, GraphNode toNode)
+    {
+        int fromId = fromNode.nodeId;
+        int toId = toNode.nodeId;
+
+        if (!nodePositions.ContainsKey(fromId) || !nodePositions.ContainsKey(toId))
+        {
+            Debug.LogWarning("Cannot create edge. Node missing: " + fromNode.nodeName + " -> " + toNode.nodeName);
             return;
         }
 
-        adjacencyList[fromNode].Add(toNode);
+        Vector3 fromPosition = nodePositions[fromId];
+        Vector3 toPosition = nodePositions[toId];
 
-        float cost = Vector3.Distance(nodePositions[fromNode], nodePositions[toNode]);
-        weightedAdjacencyList[fromNode].Add(toNode, cost);
+        NavMeshPath path = new NavMeshPath();
+
+        bool pathFound = NavMesh.CalculatePath(
+            fromPosition,
+            toPosition,
+            NavMesh.AllAreas,
+            path
+        );
+
+        float cost;
+
+        if (pathFound && path.status == NavMeshPathStatus.PathComplete && path.corners.Length > 1)
+        {
+            cost = CalculatePathCost(path);
+        }
+        else
+        {
+            // Fallback cost if NavMesh path is not available
+            cost = Vector3.Distance(fromPosition, toPosition);
+            Debug.LogWarning("NavMesh path unavailable. Using straight distance for edge: "
+                + fromNode.nodeName + " -> " + toNode.nodeName);
+        }
+
+        if (!adjacencyList[fromId].Contains(toId))
+        {
+            adjacencyList[fromId].Add(toId);
+        }
+
+        weightedAdjacencyList[fromId][toId] = cost;
     }
 
-    void PrintGraph()
+    private float CalculatePathCost(NavMeshPath path)
+    {
+        float totalCost = 0f;
+
+        for (int i = 0; i < path.corners.Length - 1; i++)
+        {
+            totalCost += Vector3.Distance(path.corners[i], path.corners[i + 1]);
+        }
+
+        return totalCost;
+    }
+
+    public void PrintGraph()
     {
         Debug.Log("========== REAL PRISON GRAPH ==========");
 
@@ -90,35 +156,77 @@ public class GraphReal : MonoBehaviour
 
         Debug.Log("=======================================");
     }
-    void OnDrawGizmos()
-{
-    if (nodePositions == null || adjacencyList == null)
+
+    public void BlockEdge(int fromId, int toId)
     {
-        return;
-    }
-
-    // Draw nodes
-    Gizmos.color = Color.yellow;
-
-    foreach (var node in nodePositions)
-    {
-        Gizmos.DrawSphere(node.Value, 0.3f);
-    }
-
-    // Draw edges
-    Gizmos.color = Color.green;
-
-    foreach (var edge in adjacencyList)
-    {
-        int fromNode = edge.Key;
-
-        foreach (int toNode in edge.Value)
+        if (adjacencyList.ContainsKey(fromId))
         {
-            if (nodePositions.ContainsKey(fromNode) && nodePositions.ContainsKey(toNode))
+            adjacencyList[fromId].Remove(toId);
+        }
+
+        if (weightedAdjacencyList.ContainsKey(fromId))
+        {
+            weightedAdjacencyList[fromId].Remove(toId);
+        }
+
+        Debug.Log("Blocked edge: " + fromId + " -> " + toId);
+    }
+
+    public void UnblockEdge(int fromId, int toId)
+    {
+        GraphNode fromNode = FindNodeById(fromId);
+        GraphNode toNode = FindNodeById(toId);
+
+        if (fromNode == null || toNode == null)
+        {
+            Debug.LogWarning("Cannot unblock edge. Node not found.");
+            return;
+        }
+
+        AddEdge(fromNode, toNode);
+        Debug.Log("Unblocked edge: " + fromId + " -> " + toId);
+    }
+
+    private GraphNode FindNodeById(int nodeId)
+    {
+        foreach (GraphNode node in graphNodes)
+        {
+            if (node.nodeId == nodeId)
             {
-                Gizmos.DrawLine(nodePositions[fromNode], nodePositions[toNode]);
+                return node;
+            }
+        }
+
+        return null;
+    }
+
+    void OnDrawGizmos()
+    {
+        if (nodePositions == null || adjacencyList == null)
+        {
+            return;
+        }
+
+        Gizmos.color = Color.yellow;
+
+        foreach (var node in nodePositions)
+        {
+            Gizmos.DrawSphere(node.Value, 0.3f);
+        }
+
+        Gizmos.color = Color.green;
+
+        foreach (var edge in adjacencyList)
+        {
+            int fromNode = edge.Key;
+
+            foreach (int toNode in edge.Value)
+            {
+                if (nodePositions.ContainsKey(fromNode) && nodePositions.ContainsKey(toNode))
+                {
+                    Gizmos.DrawLine(nodePositions[fromNode], nodePositions[toNode]);
+                }
             }
         }
     }
-}
 }
