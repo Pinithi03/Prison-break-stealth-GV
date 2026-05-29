@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prison Break: Silent Escape — GDD</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black:  #07090d;
+  --deep:   #0c1018;
+  --card:   #10151f;
+  --border: #1c2a3a;
+  --orange: #f97316;
+  --amber:  #fbbf24;
+  --red:    #ef4444;
+  --green:  #22c55e;
+  --cyan:   #06b6d4;
+  --purple: #a78bfa;
+  --muted:  #5a6575;
+  --text:   #c8ced8;
+  --bright: #eef0f4;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--black);color:var(--text);font-family:'Barlow',sans-serif;font-weight:300;overflow-x:hidden;line-height:1.6;}
+
+/* scanline overlay */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.08) 3px,rgba(0,0,0,.08) 4px);pointer-events:none;z-index:9999;}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:60px 20px;position:relative;overflow:hidden;
+  background:radial-gradient(ellipse 70% 55% at 50% 105%,rgba(249,115,22,.14),transparent 68%),
+             radial-gradient(ellipse 50% 35% at 15% 5%,rgba(6,182,212,.07),transparent 55%),var(--black);}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(249,115,22,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(249,115,22,.035) 1px,transparent 1px);background-size:55px 55px;animation:gridDrift 22s linear infinite;}
+@keyframes gridDrift{from{transform:translateY(0)}to{transform:translateY(55px)}}
+
+.badges{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:26px;animation:up .7s ease both;}
+.badge{padding:5px 15px;border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:.18em;}
+.badge.gv{background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.35);color:var(--orange);}
+.badge.is{background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.35);color:var(--cyan);}
+
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(3.5rem,11vw,8.5rem);line-height:.88;letter-spacing:.03em;animation:up .9s .08s ease both;}
+.hero-title .hl{color:var(--orange);text-shadow:0 0 40px rgba(249,115,22,.5),0 0 80px rgba(249,115,22,.18);}
+.hero-sub{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.2rem,3vw,2.2rem);letter-spacing:.28em;color:var(--muted);margin-top:10px;animation:up 1s .16s ease both;}
+.hero-desc{max-width:520px;margin:22px auto 0;color:var(--muted);font-size:.97rem;animation:up 1s .24s ease both;}
+
+.hero-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:26px;animation:up 1s .32s ease both;}
+.pill{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--cyan);font-family:'Share Tech Mono',monospace;font-size:.7rem;padding:5px 13px;border-radius:2px;}
+
+.scroll-hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:.15em;animation:blink 2.2s ease-in-out infinite;}
+.scroll-hint::after{content:'';width:1px;height:36px;background:linear-gradient(to bottom,var(--orange),transparent);}
+@keyframes blink{0%,100%{opacity:.3}50%{opacity:.9}}
+
+/* ── LAYOUT ── */
+main{max-width:1100px;margin:0 auto;padding:60px 24px 100px;}
+.section{margin-bottom:70px;}
+
+.sec-label{display:flex;align-items:center;gap:14px;margin-bottom:28px;}
+.sec-num{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--orange);letter-spacing:.15em;opacity:.65;}
+.sec-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.5rem,4vw,2.3rem);letter-spacing:.06em;color:var(--bright);}
+.sec-line{flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent);}
+
+/* ── MODULE DIVIDER ── */
+.mod-div{display:flex;align-items:center;gap:16px;margin:80px 0 50px;}
+.mod-div-line{flex:1;height:1px;}
+.mod-div-line.gv{background:linear-gradient(to right,transparent,rgba(249,115,22,.45),transparent);}
+.mod-div-line.is{background:linear-gradient(to right,transparent,rgba(6,182,212,.45),transparent);}
+.mod-div-text{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.2em;white-space:nowrap;}
+.mod-div-text.gv{color:var(--orange);}
+.mod-div-text.is{color:var(--cyan);}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:24px 28px;transition:border-color .3s,transform .28s;}
+.card:hover{border-color:rgba(249,115,22,.28);transform:translateY(-2px);}
+.card.is:hover{border-color:rgba(6,182,212,.28);}
+.card-top{content:'';display:block;height:2px;background:linear-gradient(to right,var(--orange),transparent);border-radius:2px 2px 0 0;margin:-24px -28px 20px;opacity:0;transition:opacity .3s;}
+.card:hover .card-top{opacity:1;}
+
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;}
+
+/* ── CALLOUT ── */
+.callout{background:rgba(249,115,22,.05);border:1px solid rgba(249,115,22,.22);border-left:4px solid var(--orange);border-radius:4px;padding:16px 22px;font-size:.97rem;line-height:1.65;color:var(--bright);margin-bottom:20px;}
+.callout.is{background:rgba(6,182,212,.04);border-color:rgba(6,182,212,.18);border-left-color:var(--cyan);}
+
+/* ── LISTS ── */
+ul.fl{list-style:none;display:flex;flex-direction:column;gap:8px;}
+ul.fl li{display:flex;gap:10px;font-size:.93rem;line-height:1.5;}
+ul.fl li::before{content:'▸';color:var(--orange);flex-shrink:0;margin-top:1px;}
+ul.fl.is li::before{color:var(--cyan);}
+
+/* ── LABELS ── */
+.label{font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:.14em;margin-bottom:10px;}
+.label.gv{color:var(--orange);}
+.label.is{color:var(--cyan);}
+.label.am{color:var(--amber);}
+.label.gr{color:var(--green);}
+.label.pu{color:var(--purple);}
+
+/* ── TIMELINE ── */
+.timeline{position:relative;padding-left:30px;border-left:2px solid var(--border);}
+.t-item{position:relative;margin-bottom:30px;}
+.t-item:last-child{margin-bottom:0;}
+.t-dot{position:absolute;left:-38px;top:4px;width:14px;height:14px;border-radius:50%;border:2px solid var(--orange);background:var(--black);}
+.t-dot.is{border-color:var(--cyan);}
+.t-week{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--orange);letter-spacing:.14em;margin-bottom:4px;}
+.t-week.is{color:var(--cyan);}
+.t-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.06em;color:var(--bright);margin-bottom:5px;}
+.t-desc{font-size:.88rem;color:var(--muted);line-height:1.6;}
+
+/* ── WORKFLOW ── */
+.wf-phase{margin-bottom:30px;}
+.wf-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.wf-badge{font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:.14em;padding:5px 13px;border-radius:2px;white-space:nowrap;}
+.wf-badge.start{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green);}
+.wf-badge.mid{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.28);color:var(--amber);}
+.wf-badge.par{background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.28);color:var(--purple);}
+.wf-badge.end{background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.32);color:var(--orange);}
+.wf-header-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.06em;color:var(--bright);}
+.wf-header-line{flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent);}
+.wf-lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:12px;}
+.lane{border-radius:4px;padding:15px 17px;}
+.lane.s1{background:rgba(249,115,22,.04);border:1px solid rgba(249,115,22,.18);}
+.lane.s2{background:rgba(6,182,212,.04);border:1px solid rgba(6,182,212,.15);}
+.lane.s3{background:rgba(167,139,250,.04);border:1px solid rgba(167,139,250,.15);}
+.lane.s4{background:rgba(251,191,36,.04);border:1px solid rgba(251,191,36,.15);}
+.lane-who{font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.12em;margin-bottom:8px;}
+.lane.s1 .lane-who{color:var(--orange);}
+.lane.s2 .lane-who{color:var(--cyan);}
+.lane.s3 .lane-who{color:var(--purple);}
+.lane.s4 .lane-who{color:var(--amber);}
+.lane ul{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.lane ul li{font-size:.82rem;color:var(--text);line-height:1.4;padding-left:11px;position:relative;}
+.lane.s1 ul li::before{content:'▸';position:absolute;left:0;color:var(--orange);}
+.lane.s2 ul li::before{content:'▸';position:absolute;left:0;color:var(--cyan);}
+.lane.s3 ul li::before{content:'▸';position:absolute;left:0;color:var(--purple);}
+.lane.s4 ul li::before{content:'▸';position:absolute;left:0;color:var(--amber);}
+.dep-note{background:rgba(255,255,255,.02);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:4px;padding:10px 16px;font-size:.82rem;color:var(--muted);line-height:1.5;margin-top:12px;}
+.dep-note strong{color:var(--purple);}
+.wf-connector{text-align:center;padding:12px 0;font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--muted);letter-spacing:.1em;display:flex;align-items:center;gap:10px;justify-content:center;}
+.wf-connector::before,.wf-connector::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── MEMBER BLOCKS ── */
+.member-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;}
+.mb{border-radius:4px;padding:20px 22px;}
+.mb.s1{background:rgba(249,115,22,.04);border:1px solid rgba(249,115,22,.22);}
+.mb.s2{background:rgba(6,182,212,.04);border:1px solid rgba(6,182,212,.2);}
+.mb.s3{background:rgba(167,139,250,.04);border:1px solid rgba(167,139,250,.2);}
+.mb.s4{background:rgba(251,191,36,.04);border:1px solid rgba(251,191,36,.2);}
+.mb-name{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.07em;color:var(--bright);margin-bottom:3px;}
+.mb-role{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:14px;display:block;}
+.mb.s1 .mb-role{color:var(--orange);}
+.mb.s2 .mb-role{color:var(--cyan);}
+.mb.s3 .mb-role{color:var(--purple);}
+.mb.s4 .mb-role{color:var(--amber);}
+.mb-sec{margin-top:12px;}
+.mb-sec-lbl{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.13em;color:var(--muted);margin-bottom:5px;}
+.mb-sec ul{list-style:none;display:flex;flex-direction:column;gap:4px;}
+.mb-sec ul li{font-size:.82rem;color:var(--text);padding-left:11px;position:relative;line-height:1.4;}
+.mb.s1 .mb-sec ul li::before{content:'·';position:absolute;left:2px;color:var(--orange);}
+.mb.s2 .mb-sec ul li::before{content:'·';position:absolute;left:2px;color:var(--cyan);}
+.mb.s3 .mb-sec ul li::before{content:'·';position:absolute;left:2px;color:var(--purple);}
+.mb.s4 .mb-sec ul li::before{content:'·';position:absolute;left:2px;color:var(--amber);}
+
+/* ── STATES ── */
+.states{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.state{background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.2);border-radius:4px;padding:6px 15px;font-family:'Share Tech Mono',monospace;font-size:.77rem;color:var(--cyan);}
+.state.opt{background:rgba(251,191,36,.06);border-color:rgba(251,191,36,.22);color:var(--amber);}
+.arr{color:var(--muted);}
+
+/* ── RUBRIC TABLE ── */
+.rtable{width:100%;border-collapse:collapse;font-size:.86rem;}
+.rtable th{background:rgba(255,255,255,.03);padding:10px 14px;text-align:left;font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:.12em;color:var(--muted);border-bottom:1px solid var(--border);}
+.rtable td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top;line-height:1.5;}
+.rtable tr:last-child td{border-bottom:none;}
+.rtable .type-cell{font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:.1em;}
+.rtable .marks{font-family:'Share Tech Mono',monospace;font-size:.95rem;font-weight:600;}
+.rtable .marks.hi{color:var(--orange);}
+.rtable .marks.mi{color:var(--amber);}
+.rtable .marks.lo{color:var(--cyan);}
+.rtable .grow td{background:rgba(249,115,22,.03);}
+.rtable .grow.is td{background:rgba(6,182,212,.03);}
+.rtable .totrow td{background:rgba(34,197,94,.05);font-weight:600;color:var(--green);font-family:'Share Tech Mono',monospace;}
+
+/* ── STATUS ── */
+.status-list{display:flex;flex-direction:column;gap:9px;margin-top:12px;}
+.status-item{display:flex;align-items:flex-start;gap:11px;font-size:.92rem;}
+.status-item::before{content:'✔';color:var(--green);flex-shrink:0;margin-top:2px;}
+
+/* ── GAME LOOP ── */
+.loop{display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+.ls{background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.2);border-radius:4px;padding:9px 16px;font-family:'Bebas Neue',sans-serif;letter-spacing:.08em;color:var(--orange);font-size:1.05rem;}
+.la{color:var(--muted);}
+
+/* ── ENV ZONES ── */
+.zone{text-align:center;padding:22px 18px;}
+.zone-icon{font-size:1.8rem;margin-bottom:8px;}
+.zone-name{font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:.07em;color:var(--bright);margin-bottom:4px;}
+.zone-desc{font-size:.8rem;color:var(--muted);}
+
+/* ── WIN/FAIL ── */
+.win-card{border-left:4px solid var(--green)!important;}
+.fail-card{border-left:4px solid var(--red)!important;}
+
+/* ── FOOTER ── */
+footer{text-align:center;padding:38px 20px;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--muted);letter-spacing:.12em;}
+footer .or{color:var(--orange);}
+footer .cy{color:var(--cyan);}
+
+/* ── REVEAL ── */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .55s ease,transform .55s ease;}
+.reveal.visible{opacity:1;transform:none;}
+
+@keyframes up{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:620px){
+  .loop{flex-direction:column;align-items:flex-start;}
+  .states{flex-direction:column;align-items:flex-start;}
+  .rtable{font-size:.76rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="badges">
+    <span class="badge gv">SE3032 — GRAPHICS &amp; VISUALIZATION</span>
+    <span class="badge is">SE3062 — INTELLIGENT SYSTEMS</span>
+  </div>
+  <h1 class="hero-title">PRISON BREAK<br><span class="hl">SILENT ESCAPE</span></h1>
+  <p class="hero-sub">Game Design Document</p>
+  <p class="hero-desc">A joint-module 3D stealth game. Escape a prison by collecting keycards, manipulating the environment, and outsmarting AI guards powered by custom pathfinding.</p>
+  <div class="hero-pills">
+    <span class="pill">3D Stealth</span>
+    <span class="pill">A* Pathfinding</span>
+    <span class="pill">Dynamic AI</span>
+    <span class="pill">4 Members</span>
+    <span class="pill">Deadline: 3 May 2026</span>
+  </div>
+  <div class="scroll-hint">SCROLL</div>
+</section>
+
+<main>
+
+  <!-- ══════════ 01 GAME OVERVIEW ══════════ -->
+  <div class="section reveal">
+    <div class="sec-label"><span class="sec-num">01</span><h2 class="sec-title">Game Overview</h2><span class="sec-line"></span></div>
+    <div class="callout">
+      You are a prisoner locked in a cell. First, find a hidden tool inside your cell to break out. Then navigate the prison — avoid AI-powered guards, collect 3 keycards, push barricades to reroute guards, and reach the exit gate. Guards use real pathfinding algorithms that adapt dynamically when you block their path.
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="label gv">CORE CONCEPT</div>
+        <ul class="fl">
+          <li>3D first-person stealth escape game</li>
+          <li>Player starts locked in a prison cell — must find a hidden tool to escape it first</li>
+          <li>Prison environment — corridors, cells, security room, exit gate</li>
+          <li>Collect 3 keycards spread across the prison to unlock the exit</li>
+          <li>Guards patrol and chase using AI pathfinding</li>
+          <li>Player can push barricades to reroute guards</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="label is">WHAT MAKES IT SPECIAL</div>
+        <ul class="fl is">
+          <li>Guard AI uses real A* search algorithm (not scripted)</li>
+          <li>Environment is mathematically mapped as a graph</li>
+          <li>Blocking a corridor triggers live path recalculation</li>
+          <li>Debug mode lets you see AI paths drawn in-engine</li>
+          <li>Physics-based player interaction with doors &amp; barricades</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ 02 GAME FLOW ══════════ -->
+  <div class="section reveal">
+    <div class="sec-label"><span class="sec-num">02</span><h2 class="sec-title">Game Flow</h2><span class="sec-line"></span></div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="label gr">STEP-BY-STEP GAMEPLAY SEQUENCE</div>
+      <!-- Workflow summary bar -->
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:24px;padding:12px 16px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:4px;">
+        <span style="font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--orange);">START</span>
+        <span style="color:var(--muted);">→</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--amber);">ESCAPE CELL</span>
+        <span style="color:var(--muted);">→</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--red);">AVOID GUARDS</span>
+        <span style="color:var(--muted);">→</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--cyan);">COLLECT KEYS</span>
+        <span style="color:var(--muted);">→</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--purple);">UNLOCK EXIT</span>
+        <span style="color:var(--muted);">→</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--green);">ESCAPE</span>
+      </div>
+      <div style="display:flex;flex-direction:column;padding-left:6px;gap:0;">
+
+        <div style="display:flex;gap:16px;align-items:flex-start;padding-bottom:22px;position:relative;">
+          <div style="position:absolute;left:16px;top:36px;width:2px;bottom:-4px;background:linear-gradient(to bottom,var(--orange),transparent);"></div>
+          <div style="width:34px;height:34px;flex-shrink:0;border-radius:50%;background:rgba(249,115,22,.1);border:2px solid rgba(249,115,22,.4);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--orange);">01</div>
+          <div style="padding-top:6px;"><strong style="color:var(--bright);">START — Locked in Prison Cell</strong><br><span style="font-size:.88rem;color:var(--muted);">Game begins. Player is locked inside a dimly lit prison cell. The cell door is shut. Guards are patrolling outside.</span></div>
+        </div>
+
+        <div style="display:flex;gap:16px;align-items:flex-start;padding-bottom:22px;position:relative;">
+          <div style="position:absolute;left:16px;top:36px;width:2px;bottom:-4px;background:linear-gradient(to bottom,var(--orange),transparent);"></div>
+          <div style="width:34px;height:34px;flex-shrink:0;border-radius:50%;background:rgba(251,191,36,.1);border:2px solid rgba(251,191,36,.4);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--amber);">02</div>
+          <div style="padding-top:6px;"><strong style="color:var(--bright);">ESCAPE CELL — Find the Hidden Tool</strong><br><span style="font-size:.88rem;color:var(--muted);">Player searches the cell and finds a hidden tool (e.g. a lockpick or key). Use it to interact with the cell door and break out into the corridor. This is the first puzzle before any guard interaction.</span></div>
+        </div>
+
+        <div style="display:flex;gap:16px;align-items:flex-start;padding-bottom:22px;position:relative;">
+          <div style="position:absolute;left:16px;top:36px;width:2px;bottom:-4px;background:linear-gradient(to bottom,var(--orange),transparent);"></div>
+          <div style="width:34px;height:34px;flex-shrink:0;border-radius:50%;background:rgba(239,68,68,.1);border:2px solid rgba(239,68,68,.4);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--red);">03</div>
+          <div style="padding-top:6px;"><strong style="color:var(--bright);">AVOID GUARDS — Navigate the Corridors</strong><br><span style="font-size:.88rem;color:var(--muted);">Guards patrol corridors using A*-driven routes. Player must observe guard patterns, time their movement, and stay out of vision cones. Push barricades to block and reroute guards — the AI recalculates its path in real-time.</span></div>
+        </div>
+
+        <div style="display:flex;gap:16px;align-items:flex-start;padding-bottom:22px;position:relative;">
+          <div style="position:absolute;left:16px;top:36px;width:2px;bottom:-4px;background:linear-gradient(to bottom,var(--orange),transparent);"></div>
+          <div style="width:34px;height:34px;flex-shrink:0;border-radius:50%;background:rgba(6,182,212,.1);border:2px solid rgba(6,182,212,.4);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--cyan);">04</div>
+          <div style="padding-top:6px;"><strong style="color:var(--bright);">COLLECT KEYS — 3 Keycards Across the Prison</strong><br><span style="font-size:.88rem;color:var(--muted);">Keycard 1 — near starting corridor (low risk). Keycard 2 — inside the security room (moderate risk). Keycard 3 — deep in a guard patrol zone (high risk). Each requires careful timing and planning.</span></div>
+        </div>
+
+        <div style="display:flex;gap:16px;align-items:flex-start;padding-bottom:22px;position:relative;">
+          <div style="position:absolute;left:16px;top:36px;width:2px;bottom:-4px;background:linear-gradient(to bottom,var(--orange),transparent);"></div>
+          <div style="width:34px;height:34px;flex-shrink:0;border-radius:50%;background:rgba(167,139,250,.1);border:2px solid rgba(167,139,250,.4);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--purple);">05</div>
+          <div style="padding-top:6px;"><strong style="color:var(--bright);">UNLOCK EXIT — Use All 3 Keycards</strong><br><span style="font-size:.88rem;color:var(--muted);">With all 3 keycards collected, approach the exit gate. Use the keycard reader to unlock it. The exit is heavily guarded — this is the most dangerous moment in the game.</span></div>
+        </div>
+
+        <div style="display:flex;gap:16px;align-items:flex-start;padding-bottom:22px;position:relative;">
+          <div style="position:absolute;left:16px;top:36px;width:2px;bottom:-4px;background:linear-gradient(to bottom,var(--green),transparent);"></div>
+          <div style="width:34px;height:34px;flex-shrink:0;border-radius:50%;background:rgba(34,197,94,.1);border:2px solid rgba(34,197,94,.4);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--green);">06</div>
+          <div style="padding-top:6px;"><strong style="color:var(--bright);">ESCAPE — Pass Through the Exit Gate</strong><br><span style="font-size:.88rem;color:var(--muted);">Gate unlocked. Player passes through. Mission complete. If a guard catches you at any point — Game Over, restart from the beginning.</span></div>
+        </div>
+
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div style="width:34px;height:34px;flex-shrink:0;border-radius:50%;background:rgba(34,197,94,.1);border:2px solid rgba(34,197,94,.4);display:flex;align-items:center;justify-content:center;font-size:.9rem;">🏆</div>
+          <div style="padding-top:6px;"><strong style="color:var(--green);">ESCAPE SUCCESSFUL</strong><br><span style="font-size:.88rem;color:var(--muted);">Or — if a guard catches you at any stage — Game Over. Restart from the beginning.</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Guard states -->
+    <div class="g2">
+      <div class="card">
+        <div class="label is">GUARD BEHAVIOUR STATES</div>
+        <div class="states">
+          <div class="state">PATROL</div><span class="arr">→</span>
+          <div class="state">CHASE</div><span class="arr">→</span>
+          <div class="state">SEARCH</div><span class="arr">→</span>
+          <div class="state">PATROL</div>
+        </div>
+        <div class="states" style="margin-top:6px;">
+          <div class="state opt">[OPTIONAL] INVESTIGATE</div>
+        </div>
+        <p style="font-size:.83rem;color:var(--muted);margin-top:12px;line-height:1.55;">Guards switch from Patrol → Chase when the player enters their vision cone. After losing the player, they Search before returning to Patrol.</p>
+      </div>
+      <div class="g2" style="align-content:start;gap:10px;">
+        <div class="card win-card"><div class="label gr">WIN CONDITION</div><ul class="fl" style="gap:5px;"><li style="font-size:.87rem;">Collect all 3 keycards</li><li style="font-size:.87rem;">Unlock &amp; pass the exit gate</li></ul></div>
+        <div class="card fail-card"><div class="label" style="color:var(--red);">FAIL CONDITION</div><ul class="fl" style="gap:5px;"><li style="font-size:.87rem;">Guard catches the player</li><li style="font-size:.87rem;">Game Over — restart</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ 03 ENVIRONMENT ══════════ -->
+  <div class="section reveal">
+    <div class="sec-label"><span class="sec-num">03</span><h2 class="sec-title">Environment</h2><span class="sec-line"></span></div>
+    <div class="g4" style="margin-bottom:16px;">
+      <div class="card zone"><div class="zone-icon">🔒</div><div class="zone-name">Prison Cell</div><div class="zone-desc">Start location. Find hidden tool to break out.</div></div>
+      <div class="card zone"><div class="zone-icon">🌑</div><div class="zone-name">Corridors</div><div class="zone-desc">Main stealth area. Guard patrols + barricades.</div></div>
+      <div class="card zone"><div class="zone-icon">🖥️</div><div class="zone-name">Security Room</div><div class="zone-desc">Moderate risk. Keycard 2 inside.</div></div>
+      <div class="card zone"><div class="zone-icon">🚪</div><div class="zone-name">Exit Gate</div><div class="zone-desc">Final goal. Needs all 3 keycards.</div></div>
+    </div>
+    <div class="card">
+      <div class="label gv">GAME LOOP</div>
+      <div class="loop">
+        <div class="ls">START</div><span class="la">→</span>
+        <div class="ls" style="color:var(--amber);border-color:rgba(251,191,36,.3);">ESCAPE CELL</div><span class="la">→</span>
+        <div class="ls" style="color:var(--red);border-color:rgba(239,68,68,.3);">AVOID GUARDS</div><span class="la">→</span>
+        <div class="ls" style="color:var(--cyan);border-color:rgba(6,182,212,.3);">COLLECT KEYS</div><span class="la">→</span>
+        <div class="ls" style="color:var(--purple);border-color:rgba(167,139,250,.3);">UNLOCK EXIT</div><span class="la">→</span>
+        <div class="ls" style="color:var(--green);border-color:rgba(34,197,94,.3);">ESCAPE</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ 04 PROJECT TIMELINE ══════════ -->
+  <div class="section reveal">
+    <div class="sec-label"><span class="sec-num">04</span><h2 class="sec-title">Project Timeline</h2><span class="sec-line"></span></div>
+    <div class="timeline">
+      <div class="t-item">
+        <div class="t-dot"></div>
+        <div class="t-week">WEEK 11</div>
+        <div class="t-title">Concept &amp; Scope Pitch</div>
+        <div class="t-desc">Live presentation of game concept, art direction, and AI system plan. Each member declares their GV and IS role. Graph abstraction approach explained to lecturers.</div>
+      </div>
+      <div class="t-item">
+        <div class="t-dot is"></div>
+        <div class="t-week is">WEEK 13</div>
+        <div class="t-title">Logic &amp; Asset Prototype</div>
+        <div class="t-desc">Custom 3D models drafted and imported into engine. Player physics interactions functional. A* algorithm printing correct paths to debug console. Graph extraction working. NavMesh baked.</div>
+      </div>
+      <div class="t-item">
+        <div class="t-dot"></div>
+        <div class="t-week">WEEK 15 · 3 MAY 2026</div>
+        <div class="t-title">Final Showcase &amp; Viva</div>
+        <div class="t-desc">Live demo of completed simulation. Submit source code + 3-minute demo video. Individual viva questioning on each member's specific algorithm and design choices. Git history reviewed per member.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ 05 DEVELOPMENT WORKFLOW ══════════ -->
+  <div class="section reveal">
+    <div class="sec-label"><span class="sec-num">05</span><h2 class="sec-title">Development Workflow</h2><span class="sec-line"></span></div>
+    <div class="callout">Each phase has clear goals. Members work in parallel where possible, but some tasks have hard dependencies — S1 must bake the NavMesh before S1-IS can extract the graph, and before S4 can wire up real agent movement.</div>
+
+    <!-- PHASE 1 -->
+    <div class="wf-phase">
+      <div class="wf-header">
+        <span class="wf-badge start">PHASE 1 — WEEK 11 · SETUP &amp; FOUNDATIONS</span>
+        <span class="wf-header-line"></span>
+      </div>
+      <div class="wf-lanes">
+        <div class="lane s1">
+          <div class="lane-who">S1 — WORLD BUILDER</div>
+          <ul>
+            <li>Design &amp; block out prison environment layout</li>
+            <li>Place walls, corridors, rooms, exit gate</li>
+            <li>Begin lighting setup (night-time atmosphere)</li>
+          </ul>
+        </div>
+        <div class="lane s2">
+          <div class="lane-who">S2 — SYSTEMS ENGINEER</div>
+          <ul>
+            <li>Set up player controller &amp; movement</li>
+            <li>Prototype basic door interaction</li>
+            <li>Place barricade objects in scene</li>
+          </ul>
+        </div>
+        <div class="lane s3">
+          <div class="lane-who">S3 — CORE DEVELOPER</div>
+          <ul>
+            <li>Begin cell door model in Blender</li>
+            <li>Begin keycard reader model in Blender</li>
+            <li>Research A* algorithm structure</li>
+          </ul>
+        </div>
+        <div class="lane s4">
+          <div class="lane-who">S4 — AGENT CONTROLLER</div>
+          <ul>
+            <li>Set up guard character in engine</li>
+            <li>Prepare animation state machine (Walk/Chase)</li>
+            <li>Research BFS &amp; UCS algorithm structure</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="wf-connector">↓ &nbsp; APPROACHING WEEK 13 MILESTONE &nbsp; ↓</div>
+
+    <!-- PHASE 2 -->
+    <div class="wf-phase">
+      <div class="wf-header">
+        <span class="wf-badge mid">PHASE 2 — WEEKS 11–13 · CORE BUILD</span>
+        <span class="wf-header-line"></span>
+      </div>
+      <div class="wf-lanes">
+        <div class="lane s1">
+          <div class="lane-who">S1 — STARTS FIRST ⚡</div>
+          <ul>
+            <li>Apply textures across all environment geometry</li>
+            <li>Bake lighting &amp; lightmaps</li>
+            <li><strong>Bake NavMesh</strong> — unblocks S1-IS &amp; S4</li>
+            <li>[IS] Write NavMesh → graph extraction script</li>
+            <li>[IS] Output adjacency list to console</li>
+          </ul>
+        </div>
+        <div class="lane s2">
+          <div class="lane-who">S2 — PARALLEL</div>
+          <ul>
+            <li>Complete barricade push physics script</li>
+            <li>Complete door open/close interaction</li>
+            <li>[IS] Write event listener for barricade collision</li>
+            <li>[IS] Implement edge-severing on graph when barricade placed</li>
+          </ul>
+        </div>
+        <div class="lane s3">
+          <div class="lane-who">S3 — PARALLEL</div>
+          <ul>
+            <li>Finish cell door mesh — clean topology, UV unwrap</li>
+            <li>Finish keycard reader mesh — UV unwrap</li>
+            <li>Export as FBX, import into engine</li>
+            <li>[IS] Implement A* algorithm — test paths in console</li>
+          </ul>
+        </div>
+        <div class="lane s4">
+          <div class="lane-who">S4 — UNBLOCKED BY S1</div>
+          <ul>
+            <li>Connect movement to A* path arrays from S3</li>
+            <li>Implement smooth rotation toward next waypoint</li>
+            <li>[IS] Implement BFS — compare paths with A*</li>
+            <li>[IS] Build debug visualizer — draw nodes &amp; paths in-engine</li>
+          </ul>
+        </div>
+      </div>
+      <div class="dep-note">⚠ <strong>Hard dependency:</strong> S1 must bake NavMesh before S1-IS graph extraction and S4 real movement can begin. S3 must output valid A* paths before S4 can animate guards on real routes.</div>
+    </div>
+
+    <div class="wf-connector">↓ &nbsp; WEEK 13 MILESTONE &nbsp; ↓</div>
+
+    <!-- PHASE 3 -->
+    <div class="wf-phase">
+      <div class="wf-header">
+        <span class="wf-badge par">PHASE 3 — WEEKS 13–14 · INTEGRATION &amp; POLISH</span>
+        <span class="wf-header-line"></span>
+      </div>
+      <div class="wf-lanes">
+        <div class="lane s1">
+          <div class="lane-who">S1 — ENVIRONMENT POLISH</div>
+          <ul>
+            <li>Add props &amp; detail geometry (bars, crates, signage)</li>
+            <li>Final NavMesh walkable area tweaks</li>
+            <li>[IS] Optimise adjacency list efficiency</li>
+          </ul>
+        </div>
+        <div class="lane s2">
+          <div class="lane-who">S2 — INTEGRATION</div>
+          <ul>
+            <li>Test physics against S1's final environment</li>
+            <li>Fix any barricade / door clipping bugs</li>
+            <li>[IS] Verify recalculation triggers correctly with real A*</li>
+            <li>[IS] Stress-test edge-severing — no crashes or infinite loops</li>
+          </ul>
+        </div>
+        <div class="lane s3">
+          <div class="lane-who">S3 — MODEL IMPORT &amp; A* TUNE</div>
+          <ul>
+            <li>Texture &amp; shade custom models in-engine</li>
+            <li>Replace placeholder doors with custom models</li>
+            <li>[IS] Tune A* heuristic if guards over/under-shoot</li>
+          </ul>
+        </div>
+        <div class="lane s4">
+          <div class="lane-who">S4 — ANIMATION POLISH</div>
+          <ul>
+            <li>Blend Walk ↔ Chase animations smoothly</li>
+            <li>Test guard re-animation after barricade reroute</li>
+            <li>[IS] Toggle debug mode in-game — verify performance</li>
+          </ul>
+        </div>
+      </div>
+      <div class="dep-note">🔗 <strong>Integration week:</strong> All systems must connect. Full chain test: player pushes barricade → S2-IS severs edge → S3 A* recalculates → S4 guard re-animates on new path.</div>
+    </div>
+
+    <div class="wf-connector">↓ &nbsp; FINAL WEEK &nbsp; ↓</div>
+
+    <!-- PHASE 4 -->
+    <div class="wf-phase">
+      <div class="wf-header">
+        <span class="wf-badge end">PHASE 4 — WEEK 15 · FINAL SHOWCASE &amp; VIVA</span>
+        <span class="wf-header-line"></span>
+      </div>
+      <div class="wf-lanes">
+        <div class="lane s1">
+          <div class="lane-who">S1 — FINAL</div>
+          <ul>
+            <li>Final lighting &amp; texture pass</li>
+            <li>Capture screenshots for demo video</li>
+            <li>Viva: explain NavMesh baking, texture compression choices, graph extraction time complexity</li>
+          </ul>
+        </div>
+        <div class="lane s2">
+          <div class="lane-who">S2 — FINAL</div>
+          <ul>
+            <li>Verify all physics interactions are bug-free</li>
+            <li>Viva: explain Rigidbody settings, physics timestep, event interception and edge-severing logic</li>
+          </ul>
+        </div>
+        <div class="lane s3">
+          <div class="lane-who">S3 — FINAL</div>
+          <ul>
+            <li>All models fully textured &amp; imported cleanly</li>
+            <li>Viva: explain Blender workflow, polygon counts, UV mapping, A* heuristic admissibility</li>
+          </ul>
+        </div>
+        <div class="lane s4">
+          <div class="lane-who">S4 — FINAL</div>
+          <ul>
+            <li>Record 3-minute demo video with debug visualizer toggled live</li>
+            <li>Viva: explain animation blending, BFS vs A* comparison, debug renderer approach</li>
+          </ul>
+        </div>
+      </div>
+      <div class="dep-note">🏁 <strong>Submission:</strong> Source code + 3-minute demo video due 3 May 2026. Each member's Git history must show 5 weeks of commits scoped to their own role with clean commit messages.</div>
+    </div>
+  </div>
+
+  <!-- ══════════ GV MODULE ══════════ -->
+  <div class="mod-div reveal">
+    <div class="mod-div-line gv"></div>
+    <div class="mod-div-text gv">⬡ SE3032 — GRAPHICS &amp; VISUALIZATION MODULE</div>
+    <div class="mod-div-line gv"></div>
+  </div>
+
+  <!-- ══════════ 06 GV MEMBER TASKS ══════════ -->
+  <div class="section reveal">
+    <div class="sec-label"><span class="sec-num">06</span><h2 class="sec-title">GV — Member Responsibilities</h2><span class="sec-line"></span></div>
+    <div class="callout">Each member is individually graded on their GV role via Git commits. The rubric evaluates Role-Specific Quality (20%), Workflow &amp; Tools (20%), Design &amp; Optimization Justification (20%), and Git Cleanliness (10%).</div>
+    <div class="member-grid">
+
+      <div class="mb s1">
+        <div class="mb-name">Student 1</div>
+        <span class="mb-role">THE WORLD BUILDER — LEVEL DESIGN, LIGHTING &amp; TEXTURING</span>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">CORE TASKS</div>
+          <ul>
+            <li>Construct the full 3D prison environment layout</li>
+            <li>Apply cohesive textures across all geometry</li>
+            <li>Bake night-time lighting &amp; lightmaps for performance</li>
+            <li>Bake initial NavMesh for player &amp; AI navigation</li>
+            <li>Add props and detail assets to corridors &amp; rooms</li>
+          </ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">VIVA PREP — GV</div>
+          <ul>
+            <li>Why baked lighting over realtime?</li>
+            <li>Texture compression choices &amp; performance reasoning</li>
+            <li>NavMesh settings — walkable slope, step height</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mb s2">
+        <div class="mb-name">Student 2</div>
+        <span class="mb-role">THE SYSTEMS ENGINEER — PLAYER INTERACTION PHYSICS</span>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">CORE TASKS</div>
+          <ul>
+            <li>Script physics-based barricade push system</li>
+            <li>Script door open/close interaction</li>
+            <li>Ensure smooth, bug-free interactions — no geometry clipping</li>
+            <li>Player can pick up keycards from environment</li>
+          </ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">VIVA PREP — GV</div>
+          <ul>
+            <li>Rigidbody vs Kinematic — which and why?</li>
+            <li>Physics fixed timestep optimization</li>
+            <li>Preventing barricade from clipping through walls</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mb s3">
+        <div class="mb-name">Student 3</div>
+        <span class="mb-role">THE CORE DEVELOPER — CUSTOM 3D MODELING</span>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">CORE TASKS</div>
+          <ul>
+            <li>Model prison cell door from scratch in Blender</li>
+            <li>Model keycard reader from scratch in Blender</li>
+            <li>Proper mesh topology &amp; UV unwrapping on both models</li>
+            <li>Export as FBX &amp; import cleanly into game engine</li>
+            <li>Texture and shade models to match environment</li>
+          </ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">VIVA PREP — GV</div>
+          <ul>
+            <li>Polygon count choices for each model</li>
+            <li>UV mapping approach &amp; texture resolution</li>
+            <li>Blender → FBX export workflow</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mb s4">
+        <div class="mb-name">Student 4</div>
+        <span class="mb-role">THE AGENT CONTROLLER — AGENT ANIMATION &amp; MOVEMENT</span>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">CORE TASKS</div>
+          <ul>
+            <li>Translate IS math path arrays into 3D guard movement</li>
+            <li>Smooth character rotation toward next waypoint (Slerp)</li>
+            <li>Walk / Chase / Search animation blend tree</li>
+            <li>Guard re-animates cleanly after barricade reroute</li>
+          </ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">VIVA PREP — GV</div>
+          <ul>
+            <li>Lerp vs Slerp — when and why</li>
+            <li>Animation blend tree design decisions</li>
+            <li>Preventing movement jitter at waypoints</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- GV RUBRIC -->
+  <div class="section reveal">
+    <div class="sec-label"><span class="sec-num">07</span><h2 class="sec-title">GV Marking Rubric — SE3032</h2><span class="sec-line"></span></div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="rtable">
+        <thead><tr><th>TYPE</th><th>CRITERION</th><th>MARKS</th><th>EXPECTATION</th></tr></thead>
+        <tbody>
+          <tr class="grow"><td class="type-cell" style="color:var(--orange);" rowspan="2">GROUP 30%</td><td>Visual Cohesion</td><td class="marks mi">15</td><td>Models, textures, lighting &amp; animations blend into a unified aesthetic.</td></tr>
+          <tr class="grow"><td>Build Stability</td><td class="marks mi">15</td><td>Project compiles and runs smoothly. Physics do not break environment geometry.</td></tr>
+          <tr><td class="type-cell" style="color:var(--amber);" rowspan="4">INDIVIDUAL 70%</td><td>Role-Specific Quality</td><td class="marks hi">20</td><td>S1: Level layout, NavMesh, lighting. S2: Physics interactions. S3: Custom 3D models. S4: Smooth agent animation.</td></tr>
+          <tr><td>Git Commits &amp; Cleanliness</td><td class="marks lo">10</td><td>5 weeks of commits scoped to own role. Clear messages. No bloated assets.</td></tr>
+          <tr><td>Workflow &amp; Tools</td><td class="marks hi">20</td><td>Can fluently explain personal step-by-step process and mastery of tools used (Blender, Unity/Unreal physics).</td></tr>
+          <tr><td>Design &amp; Optimization Justification</td><td class="marks hi">20</td><td>Can explain why visual/structural choices were made — polygon counts, texture compression, physics timesteps.</td></tr>
+          <tr class="totrow"><td colspan="2">TOTAL</td><td>100</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════ IS MODULE ══════════ -->
+  <div class="mod-div reveal">
+    <div class="mod-div-line is"></div>
+    <div class="mod-div-text is">⬡ SE3062 — INTELLIGENT SYSTEMS MODULE</div>
+    <div class="mod-div-line is"></div>
+  </div>
+
+  <!-- ══════════ 08 IS MEMBER TASKS ══════════ -->
+  <div class="section reveal">
+    <div class="sec-label"><span class="sec-num">08</span><h2 class="sec-title">IS — Member Responsibilities</h2><span class="sec-line"></span></div>
+    <div class="callout is">Each member is individually graded on their IS role via Git commits. The rubric evaluates Algorithm Accuracy (25%), Algorithmic Complexity understanding (25%), and Git &amp; Code Quality (15%).</div>
+    <div class="member-grid">
+
+      <div class="mb s1">
+        <div class="mb-name">Student 1</div>
+        <span class="mb-role">CUSTOM GRAPH FORMULATION</span>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">CORE TASKS</div>
+          <ul>
+            <li>Write script to extract NavMesh data into a graph</li>
+            <li>Generate nodes from walkable NavMesh positions</li>
+            <li>Build adjacency list with edge weights (distances)</li>
+            <li>Output graph to console — verifiable before 3D use</li>
+            <li>Optimise graph size — avoid redundant nodes</li>
+          </ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">VIVA PREP — IS</div>
+          <ul>
+            <li>How is the NavMesh converted to a graph?</li>
+            <li>Time complexity of adjacency list construction: O(V + E)</li>
+            <li>Why adjacency list over adjacency matrix here?</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mb s2">
+        <div class="mb-name">Student 2</div>
+        <span class="mb-role">DYNAMIC ADAPTATION &amp; EVENT INTERCEPTION</span>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">CORE TASKS</div>
+          <ul>
+            <li>Write event listener for barricade placement/collision</li>
+            <li>Detect which graph edges are blocked by barricade position</li>
+            <li>Sever those edges in the adjacency list in real-time</li>
+            <li>Trigger A* recalculation without causing infinite loops</li>
+            <li>Restore edges if barricade is removed</li>
+          </ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">VIVA PREP — IS</div>
+          <ul>
+            <li>How do you detect which edges to sever?</li>
+            <li>How is an infinite recalculation loop prevented?</li>
+            <li>What happens to the guard path mid-travel when edge is severed?</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mb s3">
+        <div class="mb-name">Student 3</div>
+        <span class="mb-role">A* SEARCH &amp; HEURISTIC DESIGN</span>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">CORE TASKS</div>
+          <ul>
+            <li>Implement A* algorithm using the graph from S1</li>
+            <li>Build a min-heap priority queue for open node selection</li>
+            <li>Define heuristic h(n) — Euclidean distance to goal</li>
+            <li>Ensure heuristic is admissible: h(n) ≤ actual cost</li>
+            <li>Print correct paths to console before 3D integration</li>
+          </ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">VIVA PREP — IS</div>
+          <ul>
+            <li>Explain f(n) = g(n) + h(n) formula</li>
+            <li>Why is Euclidean heuristic admissible here?</li>
+            <li>A* time complexity: O(E log V) with binary heap</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mb s4">
+        <div class="mb-name">Student 4</div>
+        <span class="mb-role">SECONDARY SEARCH &amp; DEBUG VISUALIZER</span>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">CORE TASKS</div>
+          <ul>
+            <li>Implement BFS algorithm on the same graph</li>
+            <li>Implement UCS (Uniform Cost Search) as alternative</li>
+            <li>Compare BFS / UCS paths vs A* paths in console</li>
+            <li>Build toggleable debug mode — draws nodes &amp; paths in 3D view</li>
+            <li>Debug visualizer must not degrade game performance</li>
+          </ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">VIVA PREP — IS</div>
+          <ul>
+            <li>BFS complexity O(V + E) vs A* O(E log V) — why use A*?</li>
+            <li>What does UCS optimize that BFS doesn't?</li>
+            <li>How is the debug overlay drawn without impacting performance?</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- IS RUBRIC -->
+  <div class="section reveal">
+    <div class="sec-label"><span class="sec-num">09</span><h2 class="sec-title">IS Marking Rubric — SE3062</h2><span class="sec-line"></span></div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="rtable">
+        <thead><tr><th>TYPE</th><th>CRITERION</th><th>MARKS</th><th>EXPECTATION</th></tr></thead>
+        <tbody>
+          <tr class="grow is"><td class="type-cell" style="color:var(--cyan);" rowspan="2">GROUP 20%</td><td>Overall AI Cohesion</td><td class="marks mi">20</td><td>Graph, searches, recalculation, debugger &amp; graphics environment all communicate seamlessly — no crashes or null errors.</td></tr>
+          <tr class="grow is"><td>Concept &amp; Scope</td><td class="marks lo">15</td><td>Project well-scoped, mathematically sound, reflects a unified intelligent system meeting the original collaborative vision.</td></tr>
+          <tr><td class="type-cell" style="color:var(--amber);" rowspan="3">INDIVIDUAL 80%</td><td>Role-Specific Algorithm Accuracy</td><td class="marks hi">25</td><td>S1: Efficient graph/adjacency list extraction. S2: Real-time edge severing without infinite loops. S3: Flawless A* with priority queue. S4: Secondary search + toggleable debug visualizer.</td></tr>
+          <tr><td>Git Commits &amp; Code Quality</td><td class="marks lo">15</td><td>Consistent commit history for own logic. Clean, well-commented, modular code.</td></tr>
+          <tr><td>Algorithmic Complexity</td><td class="marks hi">25</td><td>Accurately and mathematically explain the algorithms and data structures personally implemented.</td></tr>
+          <tr class="totrow"><td colspan="2">TOTAL</td><td>100</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════ 10 GIT STRATEGY ══════════ -->
+  <div class="section reveal">
+    <div class="sec-label"><span class="sec-num">10</span><h2 class="sec-title">Git Commit Strategy</h2><span class="sec-line"></span></div>
+    <div class="callout">⚠️ <strong>Critical:</strong> Individual grades in BOTH modules are based on Git commit history. Each member commits only their own work — consistent commits over the full 5 weeks are required.</div>
+    <div class="member-grid">
+      <div class="mb s1">
+        <div class="mb-name">Student 1</div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">GV COMMITS</div>
+          <ul><li>environment-layout-blockout</li><li>texture-pass</li><li>lighting-bake</li><li>navmesh-bake</li><li>props-and-detail-pass</li></ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">IS COMMITS</div>
+          <ul><li>graph-formulation-script</li><li>node-extraction</li><li>adjacency-list-output</li><li>graph-optimisation</li></ul>
+        </div>
+      </div>
+      <div class="mb s2">
+        <div class="mb-name">Student 2</div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">GV COMMITS</div>
+          <ul><li>player-controller-setup</li><li>door-physics-script</li><li>barricade-push-physics</li><li>interaction-polish</li></ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">IS COMMITS</div>
+          <ul><li>event-interception-listener</li><li>edge-severing-logic</li><li>recalculation-trigger</li><li>loop-guard-impl</li></ul>
+        </div>
+      </div>
+      <div class="mb s3">
+        <div class="mb-name">Student 3</div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">GV COMMITS</div>
+          <ul><li>blender-celldoor-model</li><li>blender-keycard-reader</li><li>uv-mapping-pass</li><li>fbx-engine-import</li></ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">IS COMMITS</div>
+          <ul><li>astar-algorithm-impl</li><li>priority-queue-minheap</li><li>heuristic-design</li><li>astar-console-test</li></ul>
+        </div>
+      </div>
+      <div class="mb s4">
+        <div class="mb-name">Student 4</div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">GV COMMITS</div>
+          <ul><li>guard-movement-controller</li><li>rotation-slerp-impl</li><li>animation-blend-tree</li><li>reroute-animation-test</li></ul>
+        </div>
+        <div class="mb-sec">
+          <div class="mb-sec-lbl">IS COMMITS</div>
+          <ul><li>bfs-implementation</li><li>ucs-implementation</li><li>debug-visualizer-toggle</li><li>performance-optimise-debug</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ FINAL STATUS ══════════ -->
+  <div class="section reveal">
+    <div class="sec-label"><span class="sec-num">11</span><h2 class="sec-title">Document Status</h2><span class="sec-line"></span></div>
+    <div class="card" style="border:1px solid rgba(34,197,94,.2);background:rgba(34,197,94,.025);">
+      <p style="font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--green);letter-spacing:.15em;margin-bottom:14px;">✔ COMPLETE — BOTH MODULES COVERED</p>
+      <div class="status-list">
+        <div class="status-item">Game concept, flow, environment &amp; mechanics fully documented</div>
+        <div class="status-item">Project timeline covers Week 11 pitch, Week 13 prototype, Week 15 final showcase</div>
+        <div class="status-item">4-phase development workflow with parallel lanes and hard dependencies mapped</div>
+        <div class="status-item">All 4 member roles defined for both GV (SE3032) and IS (SE3062)</div>
+        <div class="status-item">Viva preparation notes included for each member per module</div>
+        <div class="status-item">Both complete marking rubrics included with marks and criteria</div>
+        <div class="status-item">Git commit strategy ensures individual grading integrity across both modules</div>
+        <div class="status-item">Deadline: Source code + 3-minute demo video — 3 May 2026</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span class="or">SE3032 GRAPHICS &amp; VISUALIZATION</span> &nbsp;·&nbsp; <span class="cy">SE3062 INTELLIGENT SYSTEMS</span> &nbsp;·&nbsp; PRISON BREAK: SILENT ESCAPE &nbsp;·&nbsp; DEADLINE 3 MAY 2026
+</footer>
+
+<script>
+const els = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver((e) => {
+  e.forEach(en => { if(en.isIntersecting){ en.target.classList.add('visible'); io.unobserve(en.target); } });
+}, { threshold: 0.05 });
+els.forEach(el => io.observe(el));
+</script>
+</body>
+</html>
