@@ -4,12 +4,20 @@ using UnityEngine.AI;
 
 public class GraphReal : MonoBehaviour
 {
+    // Node ID -> world/NavMesh position
     public Dictionary<int, Vector3> nodePositions = new Dictionary<int, Vector3>();
+
+    // Node ID -> connected neighbour node IDs
     public Dictionary<int, List<int>> adjacencyList = new Dictionary<int, List<int>>();
+
+    // Node ID -> neighbour ID -> movement cost
     public Dictionary<int, Dictionary<int, float>> weightedAdjacencyList =
         new Dictionary<int, Dictionary<int, float>>();
 
     private GraphNode[] graphNodes;
+
+    [Header("Debug Settings")]
+    public bool showFallbackWarnings = false;
 
     void Awake()
     {
@@ -25,6 +33,7 @@ public class GraphReal : MonoBehaviour
 
         graphNodes = FindObjectsOfType<GraphNode>();
 
+        // Step 1: Read all GraphNode objects from Unity scene
         foreach (GraphNode node in graphNodes)
         {
             if (nodePositions.ContainsKey(node.nodeId))
@@ -40,6 +49,7 @@ public class GraphReal : MonoBehaviour
             weightedAdjacencyList.Add(node.nodeId, new Dictionary<int, float>());
         }
 
+        // Step 2: Build edges from connectedNodes list
         foreach (GraphNode node in graphNodes)
         {
             foreach (GraphNode connectedNode in node.connectedNodes)
@@ -61,22 +71,30 @@ public class GraphReal : MonoBehaviour
     {
         NavMeshHit hit;
 
-        // Try near exact node position first
+        // Try exact node area first
         if (NavMesh.SamplePosition(originalPosition, out hit, 1f, NavMesh.AllAreas))
         {
             return hit.position;
         }
 
-        // Try from above using same X and Z
-        Vector3 positionAbove = new Vector3(originalPosition.x, originalPosition.y + 10f, originalPosition.z);
+        // If Y level is wrong, search from above using same X and Z
+        Vector3 positionAbove = new Vector3(
+            originalPosition.x,
+            originalPosition.y + 10f,
+            originalPosition.z
+        );
 
         if (NavMesh.SamplePosition(positionAbove, out hit, 20f, NavMesh.AllAreas))
         {
             return hit.position;
         }
 
-        // Fallback: keep scene node position so graph still works
-        Debug.LogWarning("NavMesh not found near node position. Using scene position: " + originalPosition);
+        // Fallback: use scene object position
+        if (showFallbackWarnings)
+        {
+            Debug.LogWarning("NavMesh not found near node position. Using scene position: " + originalPosition);
+        }
+
         return originalPosition;
     }
 
@@ -87,7 +105,8 @@ public class GraphReal : MonoBehaviour
 
         if (!nodePositions.ContainsKey(fromId) || !nodePositions.ContainsKey(toId))
         {
-            Debug.LogWarning("Cannot create edge. Node missing: " + fromNode.nodeName + " -> " + toNode.nodeName);
+            Debug.LogWarning("Cannot create edge. Node missing: "
+                + fromNode.nodeName + " -> " + toNode.nodeName);
             return;
         }
 
@@ -105,16 +124,21 @@ public class GraphReal : MonoBehaviour
 
         float cost;
 
+        // Use NavMesh distance if possible
         if (pathFound && path.status == NavMeshPathStatus.PathComplete && path.corners.Length > 1)
         {
             cost = CalculatePathCost(path);
         }
         else
         {
-            // Fallback cost if NavMesh path is not available
+            // Door/collider may block NavMesh. Use straight-line fallback cost.
             cost = Vector3.Distance(fromPosition, toPosition);
-            Debug.LogWarning("NavMesh path unavailable. Using straight distance for edge: "
-                + fromNode.nodeName + " -> " + toNode.nodeName);
+
+            if (showFallbackWarnings)
+            {
+                Debug.LogWarning("NavMesh path unavailable. Using straight distance for edge: "
+                    + fromNode.nodeName + " -> " + toNode.nodeName);
+            }
         }
 
         if (!adjacencyList[fromId].Contains(toId))
@@ -157,6 +181,7 @@ public class GraphReal : MonoBehaviour
         Debug.Log("=======================================");
     }
 
+    // Student 2 can call this when barricade/door blocks path
     public void BlockEdge(int fromId, int toId)
     {
         if (adjacencyList.ContainsKey(fromId))
@@ -172,6 +197,7 @@ public class GraphReal : MonoBehaviour
         Debug.Log("Blocked edge: " + fromId + " -> " + toId);
     }
 
+    // Student 2 can call this when barricade/door is opened again
     public void UnblockEdge(int fromId, int toId)
     {
         GraphNode fromNode = FindNodeById(fromId);
@@ -207,6 +233,7 @@ public class GraphReal : MonoBehaviour
             return;
         }
 
+        // Yellow spheres = graph nodes
         Gizmos.color = Color.yellow;
 
         foreach (var node in nodePositions)
@@ -214,6 +241,7 @@ public class GraphReal : MonoBehaviour
             Gizmos.DrawSphere(node.Value, 0.3f);
         }
 
+        // Green lines = graph edges
         Gizmos.color = Color.green;
 
         foreach (var edge in adjacencyList)
