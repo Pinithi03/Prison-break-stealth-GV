@@ -663,7 +663,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxDetectionDistance: 6
-  visionAngle: 100
+  visionAngle: 150
+  proximityCatchDistance: 2.5
   visionSpotlight: {fileID: 949525950}
   normalColor: {r: 0, g: 1, b: 0, a: 1}
   caughtColor: {r: 1, g: 0, b: 0, a: 1}
@@ -1068,7 +1069,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxDetectionDistance: 6
-  visionAngle: 100
+  visionAngle: 150
+  proximityCatchDistance: 2.5
   visionSpotlight: {fileID: 1306260981}
   normalColor: {r: 0, g: 1, b: 0, a: 1}
   caughtColor: {r: 1, g: 0, b: 0, a: 1}
@@ -1962,7 +1964,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 408681472}
-  m_Enabled: 0
+  m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
