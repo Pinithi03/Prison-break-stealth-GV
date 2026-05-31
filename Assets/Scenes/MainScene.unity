@@ -952,6 +952,126 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &301948210
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 301948211}
+  - component: {fileID: 301948212}
+  m_Layer: 0
+  m_Name: WoodenDoor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &301948211
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301948210}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -4, y: 0, z: 5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &301948212
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301948210}
+  m_Mesh: {fileID: 4300000, guid: 27d8f794e5e70b844930ed1dd2c37b22, type: 3}
+--- !u!1 &301948220
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 301948221}
+  - component: {fileID: 301948222}
+  m_Layer: 0
+  m_Name: StoneArchGate
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &301948221
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301948220}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -10.1, y: 0, z: 6.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &301948222
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301948220}
+  m_Mesh: {fileID: 4300000, guid: 13bcd8c7e4bb2344495d95ed71a1fb6a, type: 3}
+--- !u!1 &301948230
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 301948231}
+  - component: {fileID: 301948232}
+  m_Layer: 0
+  m_Name: BirdcageDecor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &301948231
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301948230}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -8, y: 0, z: 2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &301948232
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301948230}
+  m_Mesh: {fileID: 4300000, guid: 7bfad8312c6a9dc40b202f2cb4a25121, type: 3}
 --- !u!1 &317709265
 GameObject:
   m_ObjectHideFlags: 0
@@ -3010,11 +3130,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1018395158}
-  - component: {fileID: 1018395157}
   - component: {fileID: 1018395156}
   - component: {fileID: 1018395155}
   - component: {fileID: 1018395154}
   - component: {fileID: 1018395159}
+  - component: {fileID: 1018395160}
   m_Layer: 0
   m_Name: GraphManager
   m_TagString: Untagged
@@ -3035,7 +3155,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   showDebug: 1
-  graph: {fileID: 1018395157}
+  graph: {fileID: 1018395159}
   nodeColor: {r: 0, g: 0, b: 1, a: 1}
   edgeColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   nodeRadius: 0.3
@@ -3051,7 +3171,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3176329c93ae1dc4db474cf4cd2e8c79, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  graph: {fileID: 1018395157}
+  graph: {fileID: 1018395159}
 --- !u!114 &1018395156
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3064,19 +3184,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80852537fefca344ba5b588421fe7285, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  graph: {fileID: 1018395157}
---- !u!114 &1018395157
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1018395153}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 280e1299bb73d9c4b881a66750738e7d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  graph: {fileID: 1018395159}
 --- !u!4 &1018395158
 Transform:
   m_ObjectHideFlags: 0
@@ -3105,11 +3213,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   showFallbackWarnings: 0
+--- !u!114 &1018395160
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1018395153}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bee616adcca901b4ca785813ee2c5994, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  graph: {fileID: 1018395159}
   bfs: {fileID: 1018395156}
   ucs: {fileID: 1018395155}
+  aStar: {fileID: 0}
+  startNodeId: 0
+  goalNodeId: 4
 --- !u!1 &1061926470
 GameObject:
   m_ObjectHideFlags: 0
@@ -6250,129 +6371,8 @@ SceneRoots:
   - {fileID: 1018395158}
   - {fileID: 226479741}
   - {fileID: 2083408974}
-  - {fileID: 301948210}
-  - {fileID: 301948220}
-  - {fileID: 301948230}
   - {fileID: 1939487057}
   - {fileID: 1829563916}
---- !u!1 &301948210
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 301948211}
-  - component: {fileID: 301948212}
-  m_Layer: 0
-  m_Name: WoodenDoor
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &301948211
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 301948210}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4, y: 0, z: 5}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &301948212
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 301948210}
-  m_Mesh: {fileID: 4300000, guid: 27d8f794e5e70b844930ed1dd2c37b22, type: 3}
---- !u!1 &301948220
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 301948221}
-  - component: {fileID: 301948222}
-  m_Layer: 0
-  m_Name: StoneArchGate
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &301948221
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 301948220}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -10.1, y: 0, z: 6.5}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &301948222
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 301948220}
-  m_Mesh: {fileID: 4300000, guid: 13bcd8c7e4bb2344495d95ed71a1fb6a, type: 3}
---- !u!1 &301948230
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 301948231}
-  - component: {fileID: 301948232}
-  m_Layer: 0
-  m_Name: BirdcageDecor
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &301948231
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 301948230}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -8, y: 0, z: 2}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &301948232
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 301948230}
-  m_Mesh: {fileID: 4300000, guid: 7bfad8312c6a9dc40b202f2cb4a25121, type: 3}
-
+  - {fileID: 301948211}
+  - {fileID: 301948221}
+  - {fileID: 301948231}
