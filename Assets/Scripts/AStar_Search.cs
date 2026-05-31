@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class UCS_Search : MonoBehaviour
+public class AStar_Search : MonoBehaviour
 {
     public GraphReal graph;
 
@@ -38,7 +38,8 @@ public class UCS_Search : MonoBehaviour
                     if (!costSoFar.ContainsKey(neighbor) || newCost < costSoFar[neighbor])
                     {
                         costSoFar[neighbor] = newCost;
-                        frontier.Add(new KeyValuePair<int, float>(neighbor, newCost));
+                        float priority = newCost + Heuristic(neighbor, goalNode);
+                        frontier.Add(new KeyValuePair<int, float>(neighbor, priority));
                         cameFrom[neighbor] = current;
                     }
                 }
@@ -46,6 +47,14 @@ public class UCS_Search : MonoBehaviour
         }
 
         return ReconstructPath(cameFrom, startNode, goalNode);
+    }
+
+    private float Heuristic(int nodeId, int goalId)
+    {
+        if (!graph.nodePositions.ContainsKey(nodeId) || !graph.nodePositions.ContainsKey(goalId))
+            return 0f;
+
+        return Vector3.Distance(graph.nodePositions[nodeId], graph.nodePositions[goalId]);
     }
 
     private List<int> ReconstructPath(Dictionary<int, int> cameFrom, int start, int goal)
