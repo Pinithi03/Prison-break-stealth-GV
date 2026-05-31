@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class BFS_Search : MonoBehaviour
 {
-    public GraphDummy graph;
+    public GraphReal graph;
 
     public List<int> FindPath(int startNode, int goalNode)
     {
@@ -11,7 +11,7 @@ public class BFS_Search : MonoBehaviour
 
         Queue<int> queue = new Queue<int>();
         Dictionary<int, int> cameFrom = new Dictionary<int, int>();
-        
+
         queue.Enqueue(startNode);
         cameFrom[startNode] = startNode;
 
@@ -43,7 +43,7 @@ public class BFS_Search : MonoBehaviour
     private List<int> ReconstructPath(Dictionary<int, int> cameFrom, int start, int goal)
     {
         List<int> path = new List<int>();
-        if (!cameFrom.ContainsKey(goal)) return path; // No path found
+        if (!cameFrom.ContainsKey(goal)) return path;
 
         int current = goal;
         while (current != start)
