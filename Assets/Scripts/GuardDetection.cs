@@ -10,7 +10,10 @@ public class GuardDetection : MonoBehaviour
     [Header("Detection Range")]
     public float maxDetectionDistance = 6f;
     [Range(0f, 360f)]
-    public float visionAngle = 100f; // vision cone width in degrees
+    [Tooltip("Wider angle means the guard can see more of their peripheral vision!")]
+    public float visionAngle = 150f; // vision cone width in degrees
+    [Tooltip("If the player gets closer than this distance, they are caught instantly even if they are behind the guard's back!")]
+    public float proximityCatchDistance = 1.5f;
 
     [Header("Visual Feedback (Optional)")]
     [Tooltip("You can attach a Spotlight to this slot, and its color will change dynamically based on state!")]
@@ -65,6 +68,15 @@ public class GuardDetection : MonoBehaviour
     public bool IsPlayerDetected()
     {
         float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+
+        // 1. Proximity Catch: If player is extremely close (standing next to or touching guard), catch them instantly!
+        if (distanceToPlayer <= proximityCatchDistance)
+        {
+            Debug.Log($"🚨 Caught by proximity! Player was too close ({distanceToPlayer:F2}m).");
+            return true;
+        }
+
+        // 2. Vision Cone Catch: Normal line-of-sight detection
         if (distanceToPlayer > maxDetectionDistance) return false;
 
         // Check if player is within vision angle
