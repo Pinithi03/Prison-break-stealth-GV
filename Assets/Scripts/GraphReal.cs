@@ -2,6 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
+/// <summary>
+/// Central navigation graph for Prison Break: Silent Escape.
+/// Extracted from Unity scene GraphNode objects with NavMesh-snapped positions.
+///
+/// Student 2 — IS integration points:
+///   BlockEdge(fromId, toId)   — sever an edge (door closed / barricade placed)
+///   UnblockEdge(fromId, toId) — restore an edge (door opened / barricade removed)
+///   OnEdgeChanged              — event fired after every block/unblock (guards subscribe here
+///                                to trigger A* recalculation without polling every frame)
+/// </summary>
 public class GraphReal : MonoBehaviour
 {
     // Node ID -> world/NavMesh position
@@ -15,6 +25,19 @@ public class GraphReal : MonoBehaviour
         new Dictionary<int, Dictionary<int, float>>();
 
     private GraphNode[] graphNodes;
+
+    // ── Student 2 IS: OnEdgeChanged event ─────────────────────────────────────
+    // Fires whenever an edge is blocked or restored.
+    // Parameters: (int fromId, int toId, bool isBlocked)
+    //   isBlocked = true  → edge was just severed   (door closed / barricade placed)
+    //   isBlocked = false → edge was just restored  (door opened / barricade removed)
+    // Guards subscribe to this event so A* recalculates exactly once per state change,
+    // NOT every frame — preventing infinite recalculation loops.
+    public event System.Action<int, int, bool> OnEdgeChanged;
+
+    // Re-entrancy guard: prevents BlockEdge/UnblockEdge from firing OnEdgeChanged
+    // while a subscriber is already mid-recalculation.
+    private bool _isProcessingEdgeChange = false;
 
     [Header("Debug Settings")]
     public bool showFallbackWarnings = false;
@@ -181,7 +204,9 @@ public class GraphReal : MonoBehaviour
         Debug.Log("=======================================");
     }
 
-    // Student 2 can call this when barricade/door blocks path
+    // ── Student 2 IS ──────────────────────────────────────────────────────────
+    // Call when a door closes or a barricade is placed — severs the edge so
+    // the guard AI can no longer route through it.
     public void BlockEdge(int fromId, int toId)
     {
         if (adjacencyList.ContainsKey(fromId))
@@ -194,10 +219,22 @@ public class GraphReal : MonoBehaviour
             weightedAdjacencyList[fromId].Remove(toId);
         }
 
-        Debug.Log("Blocked edge: " + fromId + " -> " + toId);
+        Debug.Log($"[GraphReal] Blocked edge: {fromId} -> {toId}");
+
+        // Fire OnEdgeChanged once — guard AI recalculates path.
+        // The re-entrancy guard prevents a subscriber from accidentally
+        // calling BlockEdge again mid-handler (infinite loop protection).
+        if (!_isProcessingEdgeChange)
+        {
+            _isProcessingEdgeChange = true;
+            OnEdgeChanged?.Invoke(fromId, toId, true);
+            _isProcessingEdgeChange = false;
+        }
     }
 
-    // Student 2 can call this when barricade/door is opened again
+    // ── Student 2 IS ──────────────────────────────────────────────────────────
+    // Call when a door opens or a barricade is removed — restores the edge
+    // and notifies guard AI to recalculate with the new route available.
     public void UnblockEdge(int fromId, int toId)
     {
         GraphNode fromNode = FindNodeById(fromId);
@@ -205,12 +242,20 @@ public class GraphReal : MonoBehaviour
 
         if (fromNode == null || toNode == null)
         {
-            Debug.LogWarning("Cannot unblock edge. Node not found.");
+            Debug.LogWarning("[GraphReal] Cannot unblock edge — node not found.");
             return;
         }
 
         AddEdge(fromNode, toNode);
-        Debug.Log("Unblocked edge: " + fromId + " -> " + toId);
+        Debug.Log($"[GraphReal] Unblocked edge: {fromId} -> {toId}");
+
+        // Fire OnEdgeChanged once — guard AI recalculates path.
+        if (!_isProcessingEdgeChange)
+        {
+            _isProcessingEdgeChange = true;
+            OnEdgeChanged?.Invoke(fromId, toId, false);
+            _isProcessingEdgeChange = false;
+        }
     }
 
     private GraphNode FindNodeById(int nodeId)
