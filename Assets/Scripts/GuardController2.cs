@@ -41,6 +41,12 @@ public class GuardController2 : MonoBehaviour
     private bool      isSuspicious      = false;
     private bool      usingISPath       = false;
 
+    // ── Stats exposed for PathOverlay ─────────────────────────────────────
+    [HideInInspector] public List<int> lastCalculatedPath = new List<int>();
+    [HideInInspector] public int       lastPathLength     = 0;
+    [HideInInspector] public float     lastPathCost       = 0f;
+    [HideInInspector] public int       lastNodesExplored  = 0;
+
     // Fallback patrol
     private readonly List<Vector3> fallbackPath = new List<Vector3>
     {
@@ -134,11 +140,17 @@ public class GuardController2 : MonoBehaviour
         }
 
         // Guard 2 uses UCS for cost-optimal paths
-        currentISPath = ucsSearch.FindPath(currentNode, targetNode);
-        pathStepIndex = 0;
+        List<int> path   = ucsSearch.FindPath(currentNode, targetNode);
+        currentISPath    = path;
+        lastCalculatedPath = new List<int>(path);
+        lastPathLength   = path.Count;
+        lastNodesExplored = ucsSearch.lastVisited.Count;
+        lastPathCost     = ucsSearch.lastCostSoFar.ContainsKey(targetNode)
+                           ? ucsSearch.lastCostSoFar[targetNode] : 0f;
+        pathStepIndex    = 0;
 
         Debug.Log($"[Guard2] UCS path requested: Node {currentNode} → Node {targetNode}" +
-                  $" | Steps: {currentISPath.Count}");
+                  $" | Steps: {path.Count}");
 
         if (currentISPath.Count > 0) MoveToNode(currentISPath[0]);
     }

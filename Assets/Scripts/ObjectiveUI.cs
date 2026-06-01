@@ -82,30 +82,29 @@ public class ObjectiveUI : MonoBehaviour
         canvas.renderMode    = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder  = 50;
         var scaler = canvasGO.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode        = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
         canvasGO.AddComponent<GraphicRaycaster>();
 
         // ── Outer border glow panel ───────────────────────────────────────────
-        float panelW  = 360f;
-        float rowH    = 34f;
-        float titleH  = 42f;
-        float padding = 14f;
+        float panelW  = 300f;
+        float rowH    = 30f;
+        float titleH  = 38f;
+        float padding = 12f;
         float panelH  = titleH + rowH * count + padding * 2f;
 
-        var borderGO    = MakePanel(canvasGO.transform, "Border", panelW + 4f, panelH + 4f,
-                                    new Vector2(1, 1), new Vector2(-18f, -18f), colBorder);
+        var borderGO = MakePanel(canvasGO.transform, "Border", panelW + 4f, panelH + 4f,
+                                 new Vector2(1, 1), new Vector2(-10f, -10f), colBorder);
 
-        // ── Main dark panel ───────────────────────────────────────────────────
         panelObj = MakePanel(borderGO.transform, "ObjectivePanel", panelW, panelH,
                              new Vector2(0.5f, 0.5f), Vector2.zero, colPanel);
 
         // ── Title ─────────────────────────────────────────────────────────────
         float yOffset = -(padding + titleH * 0.5f);
-        var titleText = MakeText(panelObj.transform, "Title", "📋  OBJECTIVES",
-                                 panelW - 20f, titleH, new Vector2(0.5f, 1f),
+        var titleText = MakeText(panelObj.transform, "Title", "OBJECTIVES",
+                                 panelW - 16f, titleH, new Vector2(0.5f, 1f),
                                  new Vector2(0f, yOffset + titleH * 0.5f - padding));
-        titleText.fontSize  = 20;
+        titleText.fontSize  = 16;
         titleText.fontStyle = FontStyle.Bold;
         titleText.color     = new Color(0.85f, 0.92f, 1.00f, 1f);
         titleText.alignment = TextAnchor.MiddleCenter;
@@ -132,17 +131,16 @@ public class ObjectiveUI : MonoBehaviour
 
             // Checkmark
             var checkText = MakeText(panelObj.transform, $"Check_{i}", "○",
-                                     28f, rowH, new Vector2(0f, 1f),
-                                     new Vector2(14f, rowY));
-            checkText.fontSize  = 16;
+                                     24f, rowH, new Vector2(0f, 1f),
+                                     new Vector2(10f, rowY));
+            checkText.fontSize  = 13;
             checkText.alignment = TextAnchor.MiddleCenter;
 
-            // Label
             var labelText = MakeText(panelObj.transform, $"Label_{i}",
                                      ObjectiveManager.Instance.objectives[i].displayText,
-                                     panelW - 52f, rowH, new Vector2(0f, 1f),
-                                     new Vector2(44f, rowY));
-            labelText.fontSize  = 14;
+                                     panelW - 46f, rowH, new Vector2(0f, 1f),
+                                     new Vector2(36f, rowY));
+            labelText.fontSize  = 12;
             labelText.alignment = TextAnchor.MiddleLeft;
 
             rows.Add(new Row { check = checkText, label = labelText });
