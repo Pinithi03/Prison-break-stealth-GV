@@ -171,6 +171,13 @@ public class PlayerController : MonoBehaviour
 
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
+
+        // Footstep sounds — use GetAxisRaw so it snaps to 0 immediately on key release
+        float rawH = Input.GetAxisRaw("Horizontal");
+        float rawV = Input.GetAxisRaw("Vertical");
+        bool isMoving = isGrounded && (Mathf.Abs(rawH) > 0.1f || Mathf.Abs(rawV) > 0.1f);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.TickFootstep(isMoving);
     }
 
     void UpdateAnimation()
