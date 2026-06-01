@@ -4,31 +4,24 @@ using UnityEngine;
 using UnityEngine.AI;
 
 /// <summary>
-/// Enhanced Guard Controller — Student 4, GV Module (SE3032)
-///
-/// Translates mathematical path arrays (from IS BFS/UCS) into smooth
-/// 3D character movement, rotations, and animations.
-///
-/// HOW IT WORKS:
-///   1. Guard has a list of patrol target node IDs (set in Inspector)
-///   2. On startup, calls BFS_Search.FindPath() to find path to first target
-///   3. Walks each node in the returned path using NavMeshAgent
-///   4. At each waypoint, performs a look-around sweep
-///   5. When patrol node is reached, requests next BFS path to next patrol node
-///   6. Repeats indefinitely
-///
-/// Falls back to NavMesh-only patrol if no graph/BFS is assigned.
+/// Enhanced Guard Controller with runtime algorithm switching.
+/// Supports BFS, UCS, and A* — switchable live via AlgorithmSwitcherUI.
+/// Student 4, GV Module (SE3032)
 /// </summary>
 public class GuardController : MonoBehaviour
 {
-    // ── Inspector References ──────────────────────────────────────────────
+    // ── Algorithm Selection ───────────────────────────────────────────────
+    public enum SearchAlgorithm { BFS, UCS, AStar }
+
     [Header("IS Module Integration")]
-    [Tooltip("Assign the GraphReal script from your scene")]
-    public GraphReal  graph;
-    [Tooltip("Assign the BFS_Search script from your scene")]
-    public BFS_Search bfsSearch;
-    [Tooltip("Node IDs this guard patrols between (must match GraphNode IDs in scene)")]
-    public int[] patrolNodeIds = new int[] { 0, 2, 4, 6 };
+    public GraphReal      graph;
+    public BFS_Search     bfsSearch;
+    public UCS_Search     ucsSearch;
+    public AStar_Search   aStarSearch;
+    public SearchAlgorithm activeAlgorithm = SearchAlgorithm.BFS;
+
+    [Tooltip("Node IDs this guard patrols between")]
+    public int[] patrolNodeIds = new int[] { 0, 1, 2, 7 };
 
     [Header("Agent")]
     public NavMeshAgent agent;
@@ -40,19 +33,25 @@ public class GuardController : MonoBehaviour
     public float arrivalDistance = 0.7f;
 
     [Header("Waypoint Sweep")]
-    public float sweepAngle    = 75f;
-    public float sweepSpeed    = 45f;
+    public float sweepAngle     = 75f;
+    public float sweepSpeed     = 45f;
     public float sweepPauseTime = 0.5f;
 
     // ── Runtime state ─────────────────────────────────────────────────────
-    private int           patrolTargetIndex = 0;   // index into patrolNodeIds
-    private List<int>     currentISPath     = new List<int>(); // node ID path from BFS
-    private int           pathStepIndex     = 0;   // step along currentISPath
-    private bool          isSweeping        = false;
-    private bool          isSuspicious      = false;
-    private bool          usingISPath       = false; // true = IS path, false = fallback
+    private int       patrolTargetIndex = 0;
+    private List<int> currentISPath     = new List<int>();
+    private int       pathStepIndex     = 0;
+    private bool      isSweeping        = false;
+    private bool      isSuspicious      = false;
+    private bool      usingISPath       = false;
 
-    // Fallback hardcoded patrol (used if no graph/BFS assigned)
+    // ── Stats exposed for UI ──────────────────────────────────────────────
+    [HideInInspector] public int   lastPathLength    = 0;
+    [HideInInspector] public float lastPathCost      = 0f;
+    [HideInInspector] public int   lastNodesExplored = 0;
+    [HideInInspector] public List<int> lastCalculatedPath = new List<int>();
+
+    // Fallback
     private readonly List<Vector3> fallbackPath = new List<Vector3>
     {
         new Vector3(-13f, 0f, -8f),
@@ -70,18 +69,45 @@ public class GuardController : MonoBehaviour
 
         agent.speed = patrolSpeed;
 
-        if (graph != null && bfsSearch != null && patrolNodeIds.Length >= 2)
+        bool hasGraph  = graph != null && patrolNodeIds.Length >= 2;
+        bool hasSearch = bfsSearch != null || ucsSearch != null || aStarSearch != null;
+
+        if (hasGraph && hasSearch)
         {
             usingISPath = true;
-            bfsSearch.graph = graph;
-            Debug.Log("[Guard1] IS path integration ACTIVE — using BFS navigation");
+            SetGraphOnSearchers();
+            Debug.Log($"[Guard1] IS path integration ACTIVE — Algorithm: {activeAlgorithm}");
             RequestNextISPath();
         }
         else
         {
             usingISPath = false;
-            Debug.LogWarning("[Guard1] No graph/BFS assigned — falling back to NavMesh patrol");
+            Debug.LogWarning("[Guard1] No graph/search assigned — falling back to NavMesh patrol");
             if (agent.isOnNavMesh) agent.SetDestination(fallbackPath[0]);
+        }
+    }
+
+    void SetGraphOnSearchers()
+    {
+        if (bfsSearch   != null) bfsSearch.graph   = graph;
+        if (ucsSearch   != null) ucsSearch.graph   = graph;
+        if (aStarSearch != null) aStarSearch.graph = graph;
+    }
+
+    // ── Runtime algorithm switch ──────────────────────────────────────────
+    /// <summary>Switch algorithm live and immediately recalculate path.</summary>
+    public void SwitchAlgorithm(SearchAlgorithm newAlgorithm)
+    {
+        activeAlgorithm = newAlgorithm;
+        Debug.Log($"[Guard1] Algorithm switched to: {newAlgorithm}");
+
+        if (usingISPath && !isSweeping)
+        {
+            // Recalculate path immediately with new algorithm
+            StopAllCoroutines();
+            isSweeping = false;
+            agent.isStopped = false;
+            RequestNextISPath();
         }
     }
 
@@ -100,26 +126,17 @@ public class GuardController : MonoBehaviour
         UpdateAnimation();
     }
 
-    // ── IS Path patrol ────────────────────────────────────────────────────
     void UpdateISPatrol()
     {
-        if (currentISPath.Count == 0) return;
-        if (agent.pathPending) return;
+        if (currentISPath.Count == 0 || agent.pathPending) return;
 
         if (agent.remainingDistance < arrivalDistance)
         {
             pathStepIndex++;
-
             if (pathStepIndex >= currentISPath.Count)
-            {
-                // Reached end of current IS path → sweep then request next
                 StartCoroutine(SweepThenAdvance());
-            }
             else
-            {
-                // Move to next node in IS path
                 MoveToNode(currentISPath[pathStepIndex]);
-            }
         }
     }
 
@@ -128,65 +145,92 @@ public class GuardController : MonoBehaviour
         isSweeping = true;
         agent.isStopped = true;
 
-        yield return RotateTo(transform.rotation * Quaternion.Euler(0f, -sweepAngle, 0f));
+        Quaternion start = transform.rotation;
+        yield return RotateTo(start * Quaternion.Euler(0f, -sweepAngle, 0f));
         yield return new WaitForSeconds(sweepPauseTime);
-        yield return RotateTo(transform.rotation * Quaternion.Euler(0f,  sweepAngle * 2f, 0f));
+        yield return RotateTo(start * Quaternion.Euler(0f,  sweepAngle, 0f));
         yield return new WaitForSeconds(sweepPauseTime);
-        yield return RotateTo(transform.rotation * Quaternion.Euler(0f, -sweepAngle, 0f));
-        yield return new WaitForSeconds(sweepPauseTime * 0.5f);
+        yield return RotateTo(start);
 
         agent.isStopped = false;
         isSweeping = false;
 
-        // Advance patrol target
         patrolTargetIndex = (patrolTargetIndex + 1) % patrolNodeIds.Length;
         RequestNextISPath();
     }
 
-    void RequestNextISPath()
+    public void RequestNextISPath()
     {
-        // Find which node the guard is currently closest to
         int currentNode = GetNearestNodeId(transform.position);
         int targetNode  = patrolNodeIds[patrolTargetIndex];
-
         if (currentNode == targetNode)
         {
             patrolTargetIndex = (patrolTargetIndex + 1) % patrolNodeIds.Length;
             targetNode = patrolNodeIds[patrolTargetIndex];
         }
 
-        // Ask BFS for the optimal path
-        currentISPath  = bfsSearch.FindPath(currentNode, targetNode);
-        pathStepIndex  = 0;
+        // ── Select algorithm ──────────────────────────────────────────────
+        List<int> path = new List<int>();
 
-        Debug.Log($"[Guard1] BFS path requested: Node {currentNode} → Node {targetNode}" +
-                  $" | Steps: {currentISPath.Count}");
+        switch (activeAlgorithm)
+        {
+            case SearchAlgorithm.BFS:
+                if (bfsSearch != null)
+                {
+                    path = bfsSearch.FindPath(currentNode, targetNode);
+                    lastNodesExplored = bfsSearch.lastVisited.Count;
+                    lastPathCost      = 0f; // BFS has no cost metric
+                }
+                break;
 
-        if (currentISPath.Count > 0)
-            MoveToNode(currentISPath[0]);
+            case SearchAlgorithm.UCS:
+                if (ucsSearch != null)
+                {
+                    path = ucsSearch.FindPath(currentNode, targetNode);
+                    lastNodesExplored = ucsSearch.lastVisited.Count;
+                    lastPathCost      = ucsSearch.lastCostSoFar.ContainsKey(targetNode)
+                                        ? ucsSearch.lastCostSoFar[targetNode] : 0f;
+                }
+                break;
+
+            case SearchAlgorithm.AStar:
+                if (aStarSearch != null)
+                {
+                    path = aStarSearch.FindPath(currentNode, targetNode);
+                    lastNodesExplored = aStarSearch.lastExplored.Count;
+                    lastPathCost      = 0f;
+                }
+                break;
+        }
+
+        currentISPath         = path;
+        lastCalculatedPath    = new List<int>(path);
+        lastPathLength        = path.Count;
+        pathStepIndex         = 0;
+
+        Debug.Log($"[Guard1] {activeAlgorithm} path: Node {currentNode}→{targetNode} | " +
+                  $"Steps:{path.Count} | Explored:{lastNodesExplored}");
+
+        if (currentISPath.Count > 0) MoveToNode(currentISPath[0]);
     }
 
     void MoveToNode(int nodeId)
     {
         if (!graph.nodePositions.ContainsKey(nodeId)) return;
-        Vector3 worldPos = graph.nodePositions[nodeId];
-        agent.SetDestination(worldPos);
+        agent.SetDestination(graph.nodePositions[nodeId]);
     }
 
-    int GetNearestNodeId(Vector3 position)
+    int GetNearestNodeId(Vector3 pos)
     {
-        int   bestId   = -1;
-        float bestDist = float.MaxValue;
-
+        int bestId = -1; float bestDist = float.MaxValue;
         foreach (var kvp in graph.nodePositions)
         {
-            float d = Vector3.Distance(position, kvp.Value);
+            float d = Vector3.Distance(pos, kvp.Value);
             if (d < bestDist) { bestDist = d; bestId = kvp.Key; }
         }
         return bestId;
     }
 
-    // ── Fallback patrol (NavMesh only, no graph) ──────────────────────────
     void UpdateFallbackPatrol()
     {
         if (fallbackPath.Count == 0) return;
@@ -198,7 +242,6 @@ public class GuardController : MonoBehaviour
         SmoothRotation();
     }
 
-    // ─────────────────────────────────────────────────────────────────────
     IEnumerator RotateTo(Quaternion target)
     {
         while (Quaternion.Angle(transform.rotation, target) > 1f)
@@ -228,16 +271,9 @@ public class GuardController : MonoBehaviour
         anim.speed = speed > 0.1f ? 1f : 0f;
     }
 
-    /// <summary>Called by GuardDetection when player is spotted.</summary>
     public void SetSuspicious(bool suspicious) => isSuspicious = suspicious;
-
-    /// <summary>Returns how many IS path nodes remain in current patrol segment.</summary>
-    public int GetCurrentPathLength() => currentISPath.Count;
-
-    /// <summary>Returns the node ID the guard is currently navigating towards.</summary>
-    public int GetCurrentTargetNodeId()
-    {
-        if (currentISPath.Count == 0 || pathStepIndex >= currentISPath.Count) return -1;
-        return currentISPath[pathStepIndex];
-    }
+    public int  GetCurrentPathLength()    => currentISPath.Count;
+    public int  GetCurrentTargetNodeId()  =>
+        (currentISPath.Count == 0 || pathStepIndex >= currentISPath.Count)
+        ? -1 : currentISPath[pathStepIndex];
 }
