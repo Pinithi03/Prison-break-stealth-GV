@@ -65,14 +65,20 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\GraphNode.cs" />
+    <Compile Include="Assets\Scripts\GlowPulse.cs" />
+    <Compile Include="Assets\Scripts\VictoryScreen.cs" />
     <Compile Include="Assets\Scripts\GraphReal.cs" />
+    <Compile Include="Assets\Scripts\ObjectiveUI.cs" />
+    <Compile Include="Assets\Scripts\GameOverScreen.cs" />
     <Compile Include="Assets\Scripts\PlayerInventory.cs" />
     <Compile Include="Assets\Scripts\WinTrigger.cs" />
     <Compile Include="Assets\Scripts\DoorController.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
+    <Compile Include="Assets\Scripts\ObjectiveManager.cs" />
     <Compile Include="Assets\Scripts\BFS_Search.cs" />
     <Compile Include="Assets\Scripts\GraphDummy.cs" />
     <Compile Include="Assets\Scripts\GuardController.cs" />
+    <Compile Include="Assets\Scripts\AudioManager.cs" />
     <Compile Include="Assets\Scripts\UCS_Search.cs" />
     <Compile Include="Assets\Scripts\PlayerController.cs" />
     <Compile Include="Assets\Scripts\KeycardPickup.cs" />

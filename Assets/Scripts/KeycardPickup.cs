@@ -45,9 +45,25 @@ public class KeycardPickup : MonoBehaviour
     public void Collect(PlayerInventory inventory)
     {
         inventory.AddItem(itemID);
-        
+
+        // Play pickup sound
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayPickup();
+
         // Print feedback in Console
         Debug.Log($"🎉 Picked up {itemID}!");
+
+        // Advance objective tracker
+        if (ObjectiveManager.Instance != null)
+        {
+            switch (itemID)
+            {
+                case "Hidden_Tool": ObjectiveManager.Instance.CompleteObjective("find_tool");     break;
+                case "Keycard_1":   ObjectiveManager.Instance.CompleteObjective("find_keycard1"); break;
+                case "Keycard_2":   ObjectiveManager.Instance.CompleteObjective("find_keycard2"); break;
+                case "Keycard_3":   ObjectiveManager.Instance.CompleteObjective("find_keycard3"); break;
+            }
+        }
 
         // Deactivate the item so it disappears from the level
         gameObject.SetActive(false);

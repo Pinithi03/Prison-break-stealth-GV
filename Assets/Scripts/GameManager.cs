@@ -45,18 +45,21 @@ public class GameManager : MonoBehaviour
 
         Debug.Log("🚨 GAME OVER! Caught by a guard!");
 
-        // Show Lose UI
-        if (losePanel != null)
-        {
-            losePanel.SetActive(true);
-        }
-
-        // Unlock mouse cursor for UI interaction
+        // Unlock mouse cursor
         Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        Cursor.visible   = true;
 
-        // Pause the game play
-        Time.timeScale = 0f;
+        // Use the animated GameOverScreen if available
+        if (GameOverScreen.Instance != null)
+        {
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayGameOver();
+            GameOverScreen.Instance.Show();
+        }
+        else
+        {
+            if (losePanel != null) losePanel.SetActive(true);
+            Time.timeScale = 0f;
+        }
     }
 
     public void WinGame()
@@ -66,18 +69,21 @@ public class GameManager : MonoBehaviour
 
         Debug.Log("🎉 YOU ESCAPED! You win the game!");
 
-        // Show Win UI
-        if (winPanel != null)
-        {
-            winPanel.SetActive(true);
-        }
-
         // Unlock mouse cursor for UI interaction
         Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        Cursor.visible   = true;
 
-        // Pause the game play
-        Time.timeScale = 0f;
+        // Use the animated VictoryScreen if available
+        if (VictoryScreen.Instance != null)
+        {
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayVictory();
+            VictoryScreen.Instance.Show();
+        }
+        else
+        {
+            if (winPanel != null) winPanel.SetActive(true);
+            Time.timeScale = 0f;
+        }
     }
 
     public void RestartGame()

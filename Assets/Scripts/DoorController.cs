@@ -73,7 +73,8 @@ public class DoorController : MonoBehaviour
             }
             else
             {
-                Debug.Log("🔒 Locked! You need all 3 keycards to escape!");
+        Debug.Log($"🔒 Locked! You need all 3 keycards to escape!");
+                if (AudioManager.Instance != null) AudioManager.Instance.PlayDoorLocked();
                 return false;
             }
         }
@@ -85,6 +86,7 @@ public class DoorController : MonoBehaviour
         }
 
         Debug.Log($"🔒 Locked! You need the '{requiredItemID}' to open this.");
+        if (AudioManager.Instance != null) AudioManager.Instance.PlayDoorLocked();
         return false;
     }
 
@@ -92,5 +94,25 @@ public class DoorController : MonoBehaviour
     {
         isOpened = true;
         Debug.Log($"🔓 Door '{gameObject.name}' is now open!");
+
+        // Play door open sound
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayDoorOpen();
+
+        // Advance objective tracker
+        if (ObjectiveManager.Instance != null)
+        {
+            switch (gameObject.name)
+            {
+                case "Cell_Door":      ObjectiveManager.Instance.CompleteObjective("break_cell_door");  break;
+                case "Security_Door":  ObjectiveManager.Instance.CompleteObjective("unlock_security");  break;
+                case "Exit_Gate":
+                    ObjectiveManager.Instance.CompleteObjective("escape");
+                    // Trigger win screen
+                    if (GameManager.Instance != null)
+                        GameManager.Instance.WinGame();
+                    break;
+            }
+        }
     }
 }

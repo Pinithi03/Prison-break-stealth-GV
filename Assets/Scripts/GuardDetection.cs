@@ -49,15 +49,15 @@ public class GuardDetection : MonoBehaviour
         {
             if (visionSpotlight != null) visionSpotlight.color = caughtColor;
 
+            // Play guard alert sound
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.PlayGuardAlert();
+
             // Trigger GameOver in GameManager
             if (GameManager.Instance != null)
-            {
                 GameManager.Instance.GameOver();
-            }
             else
-            {
                 Debug.LogError("🚨 Player Caught! (GameManager.Instance is null, make sure GameManager script is in your scene!)");
-            }
         }
         else
         {
