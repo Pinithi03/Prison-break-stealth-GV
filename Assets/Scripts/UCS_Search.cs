@@ -23,6 +23,9 @@ public class UCS_Search : MonoBehaviour
     [HideInInspector] public List<int>              lastPath      = new List<int>();
     [HideInInspector] public Dictionary<int, float> lastCostSoFar = new Dictionary<int, float>();
 
+    // Alias so Member 3's FrontierVisualizer compiles without changes
+    public List<int> lastExplored => lastVisited;
+
     // ─────────────────────────────────────────────────────────────────────
     /// <summary>
     /// Finds lowest-cost path from startNode to goalNode using UCS.
@@ -131,5 +134,68 @@ public class UCS_Search : MonoBehaviour
         path.Add(start);
         path.Reverse();
         return path;
+    }
+
+    // ── Animated coroutine version for SearchTester animated mode ─────────
+    /// <summary>
+    /// Coroutine version of UCS that steps through expansion with a delay.
+    /// Used by SearchTester when animateSearch = true.
+    /// </summary>
+    public System.Collections.IEnumerator FindPathCoroutine(
+        int startNode, int goalNode, float stepDelay,
+        System.Action<List<int>> onComplete)
+    {
+        lastFrontier.Clear();
+        lastVisited.Clear();
+        lastPath.Clear();
+        lastCostSoFar.Clear();
+
+        if (graph == null) { onComplete?.Invoke(new List<int>()); yield break; }
+
+        List<KeyValuePair<int, float>> frontier = new List<KeyValuePair<int, float>>();
+        Dictionary<int, int>   cameFrom  = new Dictionary<int, int>();
+        Dictionary<int, float> costSoFar = new Dictionary<int, float>();
+        HashSet<int>           expanded  = new HashSet<int>();
+
+        frontier.Add(new KeyValuePair<int, float>(startNode, 0f));
+        cameFrom[startNode]  = startNode;
+        costSoFar[startNode] = 0f;
+
+        while (frontier.Count > 0)
+        {
+            frontier.Sort((a, b) => a.Value.CompareTo(b.Value));
+            lastFrontier.Clear();
+            foreach (var f in frontier) lastFrontier.Add(f.Key);
+
+            int   current     = frontier[0].Key;
+            float currentCost = frontier[0].Value;
+            frontier.RemoveAt(0);
+
+            if (expanded.Contains(current)) continue;
+            expanded.Add(current);
+            lastVisited.Add(current);
+
+            if (current == goalNode) break;
+
+            if (graph.weightedAdjacencyList.ContainsKey(current))
+            {
+                foreach (var edge in graph.weightedAdjacencyList[current])
+                {
+                    int   neighbour = edge.Key;
+                    float newCost   = costSoFar[current] + edge.Value;
+                    if (!costSoFar.ContainsKey(neighbour) || newCost < costSoFar[neighbour])
+                    {
+                        costSoFar[neighbour] = newCost;
+                        frontier.Add(new KeyValuePair<int, float>(neighbour, newCost));
+                        cameFrom[neighbour] = current;
+                    }
+                }
+            }
+            yield return new UnityEngine.WaitForSeconds(stepDelay);
+        }
+
+        lastCostSoFar = costSoFar;
+        lastPath      = ReconstructPath(cameFrom, startNode, goalNode);
+        onComplete?.Invoke(new List<int>(lastPath));
     }
 }
