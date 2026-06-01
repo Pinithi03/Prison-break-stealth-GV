@@ -1,121 +1,255 @@
 using UnityEngine;
 
 /// <summary>
-/// Attach this script to each Guard GameObject (e.g. SkelMesh_Bodyguard_01, SkelMesh_Bodyguard_02).
-/// Implements a vision cone with line-of-sight raycasting.
-/// Allows the player to sneak around by hiding behind objects or keeping out of the vision angle!
+/// Enhanced Guard Detection with 2-tier suspicion system.
+/// 
+/// TIER 1 — SUSPICIOUS (yellow spotlight, "?" above head):
+///   Guard sees the player → suspicion meter fills over suspicionTimeToAlert seconds.
+///   If player hides before meter fills → suspicion drains away → guard returns to normal.
+///
+/// TIER 2 — CAUGHT (red spotlight, "!" above head):
+///   Suspicion meter fills completely → GAME OVER.
+///
+/// Proximity is still an instant catch.
 /// </summary>
 public class GuardDetection : MonoBehaviour
 {
+    // ── Detection Range ───────────────────────────────────────────────────
     [Header("Detection Range")]
-    public float maxDetectionDistance = 6f;
+    public float maxDetectionDistance  = 8f;
     [Range(0f, 360f)]
-    [Tooltip("Wider angle means the guard can see more of their peripheral vision!")]
-    public float visionAngle = 150f; // vision cone width in degrees
-    [Tooltip("If the player gets closer than this distance, they are caught instantly even if they are behind the guard's back!")]
+    public float visionAngle           = 110f;
     public float proximityCatchDistance = 1.5f;
 
-    [Header("Visual Feedback (Optional)")]
-    [Tooltip("You can attach a Spotlight to this slot, and its color will change dynamically based on state!")]
-    public Light visionSpotlight;
-    public Color normalColor = Color.green;
-    public Color caughtColor = Color.red;
+    // ── Suspicion Settings ────────────────────────────────────────────────
+    [Header("Suspicion (2-Tier Detection)")]
+    [Tooltip("Seconds of sustained sight needed to trigger GAME OVER")]
+    public float suspicionTimeToAlert  = 2.0f;
+    [Tooltip("How fast suspicion drains when player is out of sight")]
+    public float suspicionDecayRate    = 0.8f;
 
-    private Transform playerTransform;
+    // ── Spotlight Colours ─────────────────────────────────────────────────
+    [Header("Visual Feedback")]
+    public Light  visionSpotlight;
+    public Color  normalColor     = Color.green;
+    public Color  suspiciousColor = Color.yellow;
+    public Color  caughtColor     = Color.red;
 
-    private void Start()
+    // ── Internal state ────────────────────────────────────────────────────
+    private enum DetectionState { Normal, Suspicious, Caught }
+    private DetectionState state = DetectionState.Normal;
+
+    private float          suspicionLevel = 0f;   // 0 → suspicionTimeToAlert
+    private Transform      playerTransform;
+
+    // Guard controller reference (either type)
+    private GuardController  gc1;
+    private GuardController2 gc2;
+
+    // Floating "?" / "!" indicator
+    private TextMesh  indicatorMesh;
+    private Transform indicatorTransform;
+    private bool      alreadyCaught = false;
+
+    // ─────────────────────────────────────────────────────────────────────
+    void Start()
     {
-        // Find player dynamically using the tag
         GameObject playerObj = GameObject.FindWithTag("Player");
-        if (playerObj != null)
-        {
-            playerTransform = playerObj.transform;
-        }
+        if (playerObj != null) playerTransform = playerObj.transform;
 
-        // Set up spotlight color if assigned
+        gc1 = GetComponent<GuardController>();
+        gc2 = GetComponent<GuardController2>();
+
         if (visionSpotlight != null)
         {
-            visionSpotlight.color = normalColor;
-            visionSpotlight.range = maxDetectionDistance;
+            visionSpotlight.color     = normalColor;
+            visionSpotlight.range     = maxDetectionDistance;
             visionSpotlight.spotAngle = visionAngle;
         }
+
+        BuildIndicator();
     }
 
-    private void Update()
+    // ─────────────────────────────────────────────────────────────────────
+    void Update()
     {
-        if (playerTransform == null) return;
+        if (playerTransform == null || alreadyCaught) return;
+        if (GameManager.Instance != null && GameManager.Instance.isGameOver) return;
 
-        if (IsPlayerDetected())
+        // ── Proximity: always instant catch ───────────────────────────────
+        float dist = Vector3.Distance(transform.position, playerTransform.position);
+        if (dist <= proximityCatchDistance)
         {
-            if (visionSpotlight != null) visionSpotlight.color = caughtColor;
-
-            // Play guard alert sound
-            if (AudioManager.Instance != null)
-                AudioManager.Instance.PlayGuardAlert();
-
-            // Trigger GameOver in GameManager
-            if (GameManager.Instance != null)
-                GameManager.Instance.GameOver();
-            else
-                Debug.LogError("🚨 Player Caught! (GameManager.Instance is null, make sure GameManager script is in your scene!)");
+            TriggerCaught();
+            return;
         }
-        else
+
+        bool canSee = CanSeePlayer();
+
+        switch (state)
         {
-            if (visionSpotlight != null) visionSpotlight.color = normalColor;
+            // ── NORMAL ────────────────────────────────────────────────────
+            case DetectionState.Normal:
+                if (canSee)
+                {
+                    state = DetectionState.Suspicious;
+                    SetGuardSuspicious(true);
+                }
+                break;
+
+            // ── SUSPICIOUS ────────────────────────────────────────────────
+            case DetectionState.Suspicious:
+                if (canSee)
+                {
+                    suspicionLevel += Time.deltaTime;
+                    if (suspicionLevel >= suspicionTimeToAlert)
+                    {
+                        TriggerCaught();
+                        return;
+                    }
+                }
+                else
+                {
+                    suspicionLevel -= Time.deltaTime * suspicionDecayRate;
+                    if (suspicionLevel <= 0f)
+                    {
+                        suspicionLevel = 0f;
+                        state          = DetectionState.Normal;
+                        SetGuardSuspicious(false);
+                    }
+                }
+                break;
+        }
+
+        UpdateVisuals();
+        BillboardIndicator();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    void TriggerCaught()
+    {
+        if (alreadyCaught) return;
+        alreadyCaught = true;
+        state         = DetectionState.Caught;
+
+        if (visionSpotlight != null) visionSpotlight.color = caughtColor;
+
+        // Show "!" briefly
+        if (indicatorMesh != null)
+        {
+            indicatorMesh.text  = "!";
+            indicatorMesh.color = Color.red;
+            indicatorTransform.gameObject.SetActive(true);
+        }
+
+        if (AudioManager.Instance != null) AudioManager.Instance.PlayGuardAlert();
+        if (GameManager.Instance  != null) GameManager.Instance.GameOver();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    void UpdateVisuals()
+    {
+        float t = suspicionTimeToAlert > 0
+            ? suspicionLevel / suspicionTimeToAlert
+            : 0f;
+
+        // Spotlight colour: green → yellow → orange (closer to red as suspicion grows)
+        Color targetColor = state == DetectionState.Normal
+            ? normalColor
+            : Color.Lerp(suspiciousColor, caughtColor, t);
+
+        if (visionSpotlight != null)
+            visionSpotlight.color = targetColor;
+
+        // Indicator "?" symbol
+        if (indicatorMesh != null)
+        {
+            bool show = state == DetectionState.Suspicious;
+            indicatorTransform.gameObject.SetActive(show);
+            if (show)
+            {
+                indicatorMesh.text  = "?";
+                indicatorMesh.color = Color.Lerp(Color.yellow, Color.red, t);
+                // Scale pulses with suspicion
+                float scale = 0.08f + t * 0.04f;
+                indicatorTransform.localScale = Vector3.one * scale;
+            }
         }
     }
 
-    public bool IsPlayerDetected()
+    void BillboardIndicator()
+    {
+        if (indicatorTransform == null) return;
+        Camera cam = Camera.main;
+        if (cam != null)
+            indicatorTransform.rotation = cam.transform.rotation;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    bool CanSeePlayer()
     {
         float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
-
-        // 1. Proximity Catch: If player is extremely close (standing next to or touching guard), catch them instantly!
-        if (distanceToPlayer <= proximityCatchDistance)
-        {
-            Debug.Log($"🚨 Caught by proximity! Player was too close ({distanceToPlayer:F2}m).");
-            return true;
-        }
-
-        // 2. Vision Cone Catch: Normal line-of-sight detection
         if (distanceToPlayer > maxDetectionDistance) return false;
 
-        // Check if player is within vision angle
-        Vector3 directionToPlayer = (playerTransform.position - transform.position).normalized;
-        float angleToPlayer = Vector3.Angle(transform.forward, directionToPlayer);
+        Vector3 dirToPlayer  = (playerTransform.position - transform.position).normalized;
+        float   angleToPlayer = Vector3.Angle(transform.forward, dirToPlayer);
 
         if (angleToPlayer < visionAngle / 2f)
         {
-            // Perform line-of-sight raycast from guard eye level (1.6f) to player body center (1f)
-            Vector3 eyePosition = transform.position + Vector3.up * 1.6f;
-            Vector3 playerTargetPosition = playerTransform.position + Vector3.up * 1f;
-            Vector3 rayDirection = (playerTargetPosition - eyePosition).normalized;
+            Vector3 eyePos    = transform.position + Vector3.up * 1.6f;
+            Vector3 playerPos = playerTransform.position + Vector3.up * 1f;
+            Vector3 rayDir    = (playerPos - eyePos).normalized;
 
             RaycastHit hit;
-            if (Physics.Raycast(eyePosition, rayDirection, out hit, maxDetectionDistance))
+            if (Physics.Raycast(eyePos, rayDir, out hit, maxDetectionDistance))
             {
                 if (hit.collider.CompareTag("Player"))
-                {
                     return true;
-                }
             }
         }
-
         return false;
     }
 
-    private void OnDrawGizmos()
+    // ─────────────────────────────────────────────────────────────────────
+    void SetGuardSuspicious(bool suspicious)
     {
-        // Draw vision range circle in Scene View
-        Gizmos.color = new Color(1f, 1f, 0f, 0.2f);
+        if (gc1 != null) gc1.SetSuspicious(suspicious);
+        if (gc2 != null) gc2.SetSuspicious(suspicious);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    void BuildIndicator()
+    {
+        var indicatorGO = new GameObject("SuspicionIndicator");
+        indicatorGO.transform.SetParent(transform, false);
+        indicatorGO.transform.localPosition = new Vector3(0f, 2.6f, 0f);
+        indicatorTransform = indicatorGO.transform;
+
+        indicatorMesh                = indicatorGO.AddComponent<TextMesh>();
+        indicatorMesh.text           = "?";
+        indicatorMesh.fontSize       = 60;
+        indicatorMesh.characterSize  = 0.1f;
+        indicatorMesh.anchor         = TextAnchor.MiddleCenter;
+        indicatorMesh.alignment      = TextAlignment.Center;
+        indicatorMesh.color          = Color.yellow;
+
+        indicatorGO.SetActive(false);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    void OnDrawGizmos()
+    {
+        Gizmos.color = new Color(1f, 1f, 0f, 0.15f);
         Gizmos.DrawWireSphere(transform.position, maxDetectionDistance);
 
-        // Draw vision cone boundaries
-        Vector3 leftBoundary = Quaternion.Euler(0, -visionAngle / 2f, 0) * transform.forward * maxDetectionDistance;
-        Vector3 rightBoundary = Quaternion.Euler(0, visionAngle / 2f, 0) * transform.forward * maxDetectionDistance;
-
         Gizmos.color = Color.yellow;
-        Vector3 eyePosition = transform.position + Vector3.up * 1.6f;
-        Gizmos.DrawLine(eyePosition, eyePosition + leftBoundary);
-        Gizmos.DrawLine(eyePosition, eyePosition + rightBoundary);
+        Vector3 eye   = transform.position + Vector3.up * 1.6f;
+        Vector3 left  = Quaternion.Euler(0, -visionAngle / 2f, 0) * transform.forward * maxDetectionDistance;
+        Vector3 right = Quaternion.Euler(0,  visionAngle / 2f, 0) * transform.forward * maxDetectionDistance;
+        Gizmos.DrawLine(eye, eye + left);
+        Gizmos.DrawLine(eye, eye + right);
+
+        Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
+        Gizmos.DrawWireSphere(transform.position, proximityCatchDistance);
     }
 }

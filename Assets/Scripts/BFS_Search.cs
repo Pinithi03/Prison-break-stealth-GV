@@ -1,102 +1,96 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Breadth-First Search on the prison graph.
+/// Student 4 - IS Module (SE3062)
+/// 
+/// BFS guarantees the SHORTEST PATH in terms of number of edges (hops).
+/// Time Complexity:  O(V + E)  where V = nodes, E = edges
+/// Space Complexity: O(V)      for the queue and visited set
+/// Data Structure:   Queue<int> (FIFO) — ensures level-by-level expansion
+/// </summary>
 public class BFS_Search : MonoBehaviour
 {
     public GraphReal graph;
-    public List<int> lastFrontier = new List<int>();
-    public List<int> lastExplored = new List<int>();
 
+    // ── Exposed state for DebugVisualizer ─────────────────────────────────
+    [HideInInspector] public List<int> lastFrontier = new List<int>();  // nodes in queue
+    [HideInInspector] public List<int> lastVisited  = new List<int>();  // explored nodes
+    [HideInInspector] public List<int> lastPath     = new List<int>();  // final result
+
+    // ─────────────────────────────────────────────────────────────────────
+    /// <summary>
+    /// Finds shortest-hop path from startNode to goalNode using BFS.
+    /// Returns ordered list of node IDs, empty if no path found.
+    /// </summary>
     public List<int> FindPath(int startNode, int goalNode)
     {
-        if (graph == null) return new List<int>();
+        // Reset debug state
+        lastFrontier.Clear();
+        lastVisited.Clear();
+        lastPath.Clear();
 
-        Queue<int> queue = new Queue<int>();
-        Dictionary<int, int> cameFrom = new Dictionary<int, int>();
-
-        queue.Enqueue(startNode);
-        cameFrom[startNode] = startNode;
-
-        while (queue.Count > 0)
-        {
-            int current = queue.Dequeue();
-
-            // update diagnostics
-            lastExplored.Add(current);
-            lastFrontier = new List<int>(queue.ToArray());
-
-            if (current == goalNode)
-            {
-                break;
-            }
-
-            if (graph.adjacencyList.ContainsKey(current))
-            {
-                foreach (int neighbor in graph.adjacencyList[current])
-                {
-                    if (!cameFrom.ContainsKey(neighbor))
-                    {
-                        queue.Enqueue(neighbor);
-                        cameFrom[neighbor] = current;
-                    }
-                }
-            }
-        }
-
-        return ReconstructPath(cameFrom, startNode, goalNode);
-    }
-
-    public IEnumerator FindPathCoroutine(int startNode, int goalNode, float stepDelay, Action<List<int>> onComplete)
-    {
         if (graph == null)
         {
-            onComplete?.Invoke(new List<int>());
-            yield break;
+            Debug.LogError("[BFS] GraphReal reference is missing!");
+            return new List<int>();
         }
 
-        Queue<int> queue = new Queue<int>();
+        // ── BFS core data structures ──────────────────────────────────────
+        Queue<int>           queue    = new Queue<int>();   // FIFO frontier
         Dictionary<int, int> cameFrom = new Dictionary<int, int>();
+        HashSet<int>         visited  = new HashSet<int>(); // O(1) lookup
 
         queue.Enqueue(startNode);
         cameFrom[startNode] = startNode;
+        visited.Add(startNode);
 
-        lastExplored.Clear();
-        lastFrontier.Clear();
+        Debug.Log($"[BFS] Starting search from Node {startNode} to Node {goalNode}");
 
+        // ── BFS expansion loop ────────────────────────────────────────────
         while (queue.Count > 0)
         {
+            // Snapshot frontier for visualizer
+            lastFrontier = new List<int>(queue);
+
             int current = queue.Dequeue();
+            lastVisited.Add(current);
 
-            // update diagnostics
-            lastExplored.Add(current);
-            lastFrontier = new List<int>(queue.ToArray());
-
+            // Goal reached — stop
             if (current == goalNode)
             {
+                Debug.Log($"[BFS] Goal Node {goalNode} reached!");
                 break;
             }
 
+            // Expand neighbours from adjacency list
             if (graph.adjacencyList.ContainsKey(current))
             {
-                foreach (int neighbor in graph.adjacencyList[current])
+                foreach (int neighbour in graph.adjacencyList[current])
                 {
-                    if (!cameFrom.ContainsKey(neighbor))
+                    if (!visited.Contains(neighbour))
                     {
-                        queue.Enqueue(neighbor);
-                        cameFrom[neighbor] = current;
+                        visited.Add(neighbour);
+                        queue.Enqueue(neighbour);
+                        cameFrom[neighbour] = current;
                     }
                 }
             }
-
-            yield return new WaitForSeconds(stepDelay);
         }
 
-        var path = ReconstructPath(cameFrom, startNode, goalNode);
-        onComplete?.Invoke(path);
+        lastPath = ReconstructPath(cameFrom, startNode, goalNode);
+
+        if (lastPath.Count > 0)
+            Debug.Log($"[BFS] Path found ({lastPath.Count} nodes): " +
+                      string.Join(" -> ", lastPath));
+        else
+            Debug.LogWarning($"[BFS] No path found from Node {startNode} to Node {goalNode}.");
+
+        return new List<int>(lastPath);
     }
 
+    // ─────────────────────────────────────────────────────────────────────
     private List<int> ReconstructPath(Dictionary<int, int> cameFrom, int start, int goal)
     {
         List<int> path = new List<int>();
