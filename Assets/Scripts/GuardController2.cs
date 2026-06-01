@@ -203,4 +203,14 @@ public class GuardController2 : MonoBehaviour
     }
 
     public void SetSuspicious(bool suspicious) => isSuspicious = suspicious;
+
+    /// <summary>Returns how many IS path nodes remain in current patrol segment.</summary>
+    public int GetCurrentPathLength() => currentISPath.Count;
+
+    /// <summary>Returns the node ID the guard is currently navigating towards.</summary>
+    public int GetCurrentTargetNodeId()
+    {
+        if (currentISPath.Count == 0 || pathStepIndex >= currentISPath.Count) return -1;
+        return currentISPath[pathStepIndex];
+    }
 }
