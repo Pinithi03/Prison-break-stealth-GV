@@ -4,22 +4,27 @@
 // Role: Systems Engineer — Player Interaction Physics
 //
 // Description:
-//   Physics-based door interaction. The player presses E when close to a door
-//   to open or close it. The door rotates around its pivot using a Coroutine
-//   with Quaternion.RotateTowards for smooth, frame-rate-independent motion.
+//   Attach this script DIRECTLY to the door mesh object (Cell_Door,
+//   Security_Door, etc.) — no parent pivot/hinge empty object required.
 //
-//   The door uses a Kinematic Rigidbody — it is solid to the physics engine
-//   (guards, barricades cannot push through it) but we control its transform
-//   directly without fighting the physics solver.
+//   The door swings open by rotating around one of its own edges using
+//   Physics.RotateAround(). The hinge edge stays fixed in world space
+//   while the door panel swings through the open angle.
+//
+//   DESIGN CHOICE — RotateAround vs parent pivot:
+//     RotateAround(worldPoint, axis, angle) spins an object around any
+//     fixed world position without needing a parent transform.
+//     We capture the hinge edge position ONCE before the swing starts
+//     (it never moves — that is the nature of a hinge) then rotate
+//     incrementally until we reach the target angle.
 //
 // Unity Setup:
-//   1. Create a Door GameObject. Set its pivot point at the HINGE EDGE
-//      (not the centre) — create an empty parent at the hinge, make the
-//      door mesh a child of that parent.
-//   2. Add a Rigidbody to the parent. Set isKinematic = true.
-//   3. Add a BoxCollider to the door mesh child (not trigger).
-//   4. Attach this script to the hinge parent GameObject.
-//   5. Set interactionRange to the desired detection radius.
+//   1. Select your door object (Cell_Door or Security_Door).
+//   2. Add Component → Rigidbody → tick Is Kinematic = true.
+//   3. Add Component → DoorInteraction.
+//   4. Set Open Angle = 90 (or -90 if it swings the wrong way).
+//   5. Toggle 'Hinge On Positive Z' to pick which edge is the hinge.
+//      Press Play → press E near the door → it should swing open.
 // =============================================================================
 
 using System.Collections;
@@ -31,100 +36,94 @@ public class DoorInteraction : MonoBehaviour
     // ── Inspector Fields ──────────────────────────────────────────────────────
 
     [Header("Door Settings")]
-    [Tooltip("How far open the door rotates (degrees around local Y-axis).")]
+    [Tooltip("How far the door swings open in degrees. Use -90 to flip direction.")]
     [SerializeField] private float openAngle = 90f;
 
-    [Tooltip("Degrees per second the door rotates.")]
+    [Tooltip("Rotation speed in degrees per second.")]
     [SerializeField] private float rotationSpeed = 120f;
 
-    [Tooltip("Maximum distance from which the player can interact.")]
+    [Tooltip("How close the player must be to press E and interact.")]
     [SerializeField] private float interactionRange = 2.5f;
 
-    [Header("Optional Interaction Prompt")]
-    [Tooltip("Assign a world-space Canvas TextMeshPro object for '[E] Open' hint (optional).")]
-    [SerializeField] private GameObject interactionPrompt;
+    [Header("Hinge Side")]
+    [Tooltip("Which Z-edge of the door is the hinge?\n" +
+             "TRUE  = positive Z edge (try this first).\n" +
+             "FALSE = negative Z edge.\n" +
+             "Toggle this if the door swings from the wrong side.")]
+    [SerializeField] private bool hingeOnPositiveZ = true;
 
     // ── Private State ─────────────────────────────────────────────────────────
 
     private bool _isOpen;
     private bool _isMoving;
-    private Quaternion _closedRotation;
-    private Quaternion _openRotation;
     private Transform _playerTransform;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     private void Start()
     {
-        // Cache the closed (default) rotation and compute the open target.
-        _closedRotation = transform.localRotation;
-        _openRotation   = Quaternion.Euler(transform.localEulerAngles + new Vector3(0f, openAngle, 0f));
+        // Force kinematic in case it was forgotten in the Inspector.
+        GetComponent<Rigidbody>().isKinematic = true;
 
-        // Find player by tag — avoids hard references.
+        // Find the player by tag so we don't need a hard Inspector reference.
         GameObject playerObj = GameObject.FindWithTag("Player");
-        if (playerObj != null) _playerTransform = playerObj.transform;
-
-        // Start with prompt hidden.
-        if (interactionPrompt != null) interactionPrompt.SetActive(false);
+        if (playerObj != null)
+            _playerTransform = playerObj.transform;
+        else
+            Debug.LogWarning($"[DoorInteraction] '{name}': No GameObject tagged 'Player' found! " +
+                             "Make sure the Player object has the tag 'Player'.");
     }
 
-    /// <summary>
-    /// Checks distance every frame to show/hide the interaction prompt and
-    /// detect the E key press. Using Update (not FixedUpdate) so input feels
-    /// instant — key polling is presentation-layer logic, not physics.
-    /// </summary>
     private void Update()
     {
-        if (_playerTransform == null) return;
+        if (_playerTransform == null || _isMoving) return;
 
         float dist = Vector3.Distance(transform.position, _playerTransform.position);
-        bool inRange = dist <= interactionRange;
 
-        // Toggle the prompt visibility.
-        if (interactionPrompt != null)
-            interactionPrompt.SetActive(inRange && !_isMoving);
-
-        // Handle E-key interaction.
-        if (inRange && !_isMoving && Input.GetKeyDown(KeyCode.E))
+        if (dist <= interactionRange && Input.GetKeyDown(KeyCode.E))
         {
-            StartCoroutine(RotateDoor());
+            StartCoroutine(SwingDoor());
         }
     }
 
-    // ── Private Methods ───────────────────────────────────────────────────────
+    // ── Core Swing Logic ──────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Smoothly rotates the door between closed and open states.
-    ///
-    /// DESIGN CHOICE — Coroutine + Quaternion.RotateTowards vs Lerp:
-    ///   RotateTowards moves at a constant angular speed (degrees/sec) rather
-    ///   than an exponential ease that Lerp produces. This feels more physical
-    ///   and matches a real door pivot. The Coroutine runs independently of
-    ///   Update so it can be awaited and the _isMoving flag stays reliable.
-    ///
-    ///   We do NOT use Rigidbody.MoveRotation here because kinematic Rigidbody
-    ///   rotation via MoveRotation requires FixedUpdate timing — using it in a
-    ///   Coroutine tied to Update timing would cause stutter. Direct transform
-    ///   assignment is safe for kinematic Rigidbodies and avoids the mismatch.
-    /// </summary>
-    private IEnumerator RotateDoor()
+    private IEnumerator SwingDoor()
     {
         _isMoving = true;
-        Quaternion target = _isOpen ? _closedRotation : _openRotation;
 
-        while (Quaternion.Angle(transform.localRotation, target) > 0.05f)
+        // ── Calculate the hinge edge in WORLD SPACE ───────────────────────────
+        // The door's Z scale gives its width. The hinge is at one Z edge:
+        //   halfWidth = localScale.z / 2
+        //   hingeWorld = door centre  +  (door's forward direction × halfWidth)
+        //
+        // We capture this BEFORE the door starts moving.
+        // Because RotateAround pivots around a fixed world point, this
+        // position stays constant throughout the entire swing — exactly
+        // like a real hinge bolted to a door frame.
+        float halfWidth   = transform.localScale.z / 2f;
+        float hingeSign   = hingeOnPositiveZ ? 1f : -1f;
+        Vector3 hingeWorld = transform.position + transform.forward * (hingeSign * halfWidth);
+
+        // ── Swing incrementally toward the target angle ───────────────────────
+        float totalDelta = _isOpen ? -openAngle : openAngle; // positive=open, negative=close
+        float rotated    = 0f;
+
+        while (Mathf.Abs(rotated) < Mathf.Abs(totalDelta))
         {
-            transform.localRotation = Quaternion.RotateTowards(
-                transform.localRotation,
-                target,
-                rotationSpeed * Time.deltaTime
-            );
-            yield return null; // wait one frame
+            float step = rotationSpeed * Time.deltaTime * Mathf.Sign(totalDelta);
+
+            // Clamp the last step so we never overshoot the target.
+            if (Mathf.Abs(rotated + step) > Mathf.Abs(totalDelta))
+                step = totalDelta - rotated;
+
+            transform.RotateAround(hingeWorld, Vector3.up, step);
+            rotated += step;
+
+            yield return null; // wait one frame before the next step
         }
 
-        // Snap to exact target to eliminate floating-point residuals.
-        transform.localRotation = target;
-        _isOpen = !_isOpen;
+        _isOpen   = !_isOpen;
         _isMoving = false;
     }
 }
