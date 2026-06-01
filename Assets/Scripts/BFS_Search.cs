@@ -19,6 +19,9 @@ public class BFS_Search : MonoBehaviour
     [HideInInspector] public List<int> lastVisited  = new List<int>();  // explored nodes
     [HideInInspector] public List<int> lastPath     = new List<int>();  // final result
 
+    // Alias so Member 3's FrontierVisualizer compiles without changes
+    public List<int> lastExplored => lastVisited;
+
     // ─────────────────────────────────────────────────────────────────────
     /// <summary>
     /// Finds shortest-hop path from startNode to goalNode using BFS.
@@ -105,5 +108,55 @@ public class BFS_Search : MonoBehaviour
         path.Add(start);
         path.Reverse();
         return path;
+    }
+
+    // ── Animated coroutine version for SearchTester animated mode ─────────
+    /// <summary>
+    /// Coroutine version of BFS that steps through expansion with a delay.
+    /// Used by SearchTester when animateSearch = true.
+    /// </summary>
+    public System.Collections.IEnumerator FindPathCoroutine(
+        int startNode, int goalNode, float stepDelay,
+        System.Action<List<int>> onComplete)
+    {
+        lastFrontier.Clear();
+        lastVisited.Clear();
+        lastPath.Clear();
+
+        if (graph == null) { onComplete?.Invoke(new List<int>()); yield break; }
+
+        Queue<int>           queue    = new Queue<int>();
+        Dictionary<int, int> cameFrom = new Dictionary<int, int>();
+        HashSet<int>         visited  = new HashSet<int>();
+
+        queue.Enqueue(startNode);
+        cameFrom[startNode] = startNode;
+        visited.Add(startNode);
+
+        while (queue.Count > 0)
+        {
+            lastFrontier = new List<int>(queue);
+            int current = queue.Dequeue();
+            lastVisited.Add(current);
+
+            if (current == goalNode) break;
+
+            if (graph.adjacencyList.ContainsKey(current))
+            {
+                foreach (int neighbour in graph.adjacencyList[current])
+                {
+                    if (!visited.Contains(neighbour))
+                    {
+                        visited.Add(neighbour);
+                        queue.Enqueue(neighbour);
+                        cameFrom[neighbour] = current;
+                    }
+                }
+            }
+            yield return new UnityEngine.WaitForSeconds(stepDelay);
+        }
+
+        lastPath = ReconstructPath(cameFrom, startNode, goalNode);
+        onComplete?.Invoke(new List<int>(lastPath));
     }
 }
