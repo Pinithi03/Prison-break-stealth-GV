@@ -76,6 +76,7 @@ public class GuardController : MonoBehaviour
         {
             usingISPath = true;
             SetGraphOnSearchers();
+            graph.OnEdgeChanged += HandleEdgeChanged;
             Debug.Log($"[Guard1] IS path integration ACTIVE — Algorithm: {activeAlgorithm}");
             RequestNextISPath();
         }
@@ -276,4 +277,21 @@ public class GuardController : MonoBehaviour
     public int  GetCurrentTargetNodeId()  =>
         (currentISPath.Count == 0 || pathStepIndex >= currentISPath.Count)
         ? -1 : currentISPath[pathStepIndex];
+
+    void OnDestroy()
+    {
+        if (graph != null)
+        {
+            graph.OnEdgeChanged -= HandleEdgeChanged;
+        }
+    }
+
+    private void HandleEdgeChanged(int fromId, int toId, bool isBlocked)
+    {
+        if (usingISPath && !isSweeping && agent != null && agent.isOnNavMesh)
+        {
+            Debug.Log($"[Guard1] Path changed due to edge {fromId} <-> {toId} change. Recalculating path!");
+            RequestNextISPath();
+        }
+    }
 }

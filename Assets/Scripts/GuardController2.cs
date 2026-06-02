@@ -69,6 +69,7 @@ public class GuardController2 : MonoBehaviour
         {
             usingISPath = true;
             ucsSearch.graph = graph;
+            graph.OnEdgeChanged += HandleEdgeChanged;
             Debug.Log("[Guard2] IS path integration ACTIVE — using UCS navigation");
             RequestNextISPath();
         }
@@ -224,5 +225,22 @@ public class GuardController2 : MonoBehaviour
     {
         if (currentISPath.Count == 0 || pathStepIndex >= currentISPath.Count) return -1;
         return currentISPath[pathStepIndex];
+    }
+
+    void OnDestroy()
+    {
+        if (graph != null)
+        {
+            graph.OnEdgeChanged -= HandleEdgeChanged;
+        }
+    }
+
+    private void HandleEdgeChanged(int fromId, int toId, bool isBlocked)
+    {
+        if (usingISPath && !isSweeping && agent != null && agent.isOnNavMesh)
+        {
+            Debug.Log($"[Guard2] Path changed due to edge {fromId} <-> {toId} change. Recalculating path!");
+            RequestNextISPath();
+        }
     }
 }

@@ -261,5 +261,27 @@ public class PlayerController : MonoBehaviour
             Debug.Log("Interacted with: " + hit.collider.gameObject.name);
         }
     }
+
+    /// <summary>
+    /// Student 2 — GV/IS: Allow the player (CharacterController) to physically
+    /// push Rigidbody objects such as barricades.
+    /// Unity's CharacterController does not apply physics forces on its own —
+    /// this built-in callback fires each frame the controller touches a collider.
+    /// </summary>
+    void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        Rigidbody hitRb = hit.collider.attachedRigidbody;
+
+        // Ignore: no Rigidbody, or the Rigidbody is kinematic (doors, static objects)
+        if (hitRb == null || hitRb.isKinematic) return;
+
+        // Ignore: player is standing ON TOP of the object (don't push downward)
+        if (hit.moveDirection.y < -0.3f) return;
+
+        // Push horizontally — VelocityChange ignores Rigidbody mass entirely,
+        // so the crate always moves visibly regardless of how heavy it is.
+        Vector3 pushDir = new Vector3(hit.moveDirection.x, 0f, hit.moveDirection.z);
+        hitRb.AddForce(pushDir * 4f, ForceMode.VelocityChange);
+    }
 }
 
